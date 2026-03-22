@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
-import { BehaviorSubject, tap, catchError } from 'rxjs';
+import { BehaviorSubject, tap, catchError, switchMap } from 'rxjs';
 import { environment } from '../../environments/environment';
 
 export interface AuthResponse {
@@ -36,7 +36,7 @@ export class AuthService {
 
   register(email: string, password: string) {
     return this.http.post(`${environment.apiUrl}/auth/register`, { email, password }).pipe(
-      tap(() => this.login(email, password))
+      switchMap(() => this.login(email, password))
     );
   }
 

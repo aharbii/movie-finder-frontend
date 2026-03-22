@@ -91,7 +91,7 @@ export default class ChatComponent implements OnInit, AfterViewChecked {
   }
 
   parseMarkdownToHtml(text: string): SafeHtml {
-    let html = text.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="w-48 rounded-xl shadow-lg my-4 border border-white/10" />');
+    let html = text.replace(/!\[([^\]]*)\]\(([^) ]+)(?: [^)]*)?\)/g, '<img src="$2" alt="$1" class="w-48 rounded-xl shadow-lg my-4 border border-white/10" />');
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-white font-bold">$1</strong>');
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
