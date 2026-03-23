@@ -69,12 +69,14 @@ export interface SessionSummary {
   phase: Phase;
   updated_at: string;
   first_message?: string | null;
+  confirmed_movie?: ConfirmedMovie | null;
 }
 
 export interface SessionHistory {
   session_id: string;
   phase: Phase;
   messages: Message[];
+  confirmed_movie?: ConfirmedMovie | null;
 }
 
 // ── UI session state ─────────────────────────────────────────────────────────

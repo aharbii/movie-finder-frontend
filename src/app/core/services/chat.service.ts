@@ -4,6 +4,7 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import {
   ChatSession,
+  ConfirmedMovie,
   Message,
   Phase,
   SessionHistory,
@@ -67,17 +68,19 @@ export class ChatService {
       const summaries = await firstValueFrom(
         this.http.get<SessionSummary[]>(`${this.base}/chat/sessions`),
       );
-      // Build lightweight session entries; full messages are loaded on demand.
-      const restored: ChatSession[] = summaries.map((s) => ({
-        session_id: s.session_id,
-        title: s.first_message ? this.truncate(s.first_message) : 'Conversation',
-        phase: s.phase,
-        messages: [],
-        streaming: false,
-      }));
+      const restored: ChatSession[] = summaries.map((s) => {
+        const movie = s.confirmed_movie ? this.normalizeMovie(s.confirmed_movie) : undefined;
+        return {
+          session_id: s.session_id,
+          title: this.sessionTitle(s.phase, movie, s.first_message),
+          phase: s.phase,
+          messages: [],
+          confirmed_movie: movie,
+          streaming: false,
+        };
+      });
       this.sessions.set(restored);
       if (restored.length) {
-        // Pre-load the most recent session's messages
         await this.loadHistory(restored[0].session_id);
       }
     } catch {
@@ -91,11 +94,15 @@ export class ChatService {
         `${this.base}/chat/${session_id}/history`,
       ),
     );
+    const movie = history.confirmed_movie
+      ? this.normalizeMovie(history.confirmed_movie)
+      : undefined;
     this.upsertSession({
       session_id: history.session_id,
-      title: this.deriveTitle(history.messages),
+      title: this.sessionTitle(history.phase, movie, this.deriveTitle(history.messages)),
       phase: history.phase,
       messages: history.messages,
+      confirmed_movie: movie,
       streaming: false,
     });
     this.activeSessionId.set(session_id);
@@ -279,23 +286,8 @@ export class ChatService {
   }
 
   private applyDoneEvent(session_id: string, event: SseDoneEvent): void {
-    // The backend currently sends confirmed_movie_data as a raw EnrichedMovie
-    // dict (fields: imdb_title, imdb_year, imdb_poster_url, …) rather than the
-    // ConfirmedMovie contract shape (title, year, poster_url, …).
-    // Normalise here so the UI always works regardless of which shape arrives.
-    const raw = event.confirmed_movie as Record<string, unknown> | undefined;
-    const confirmed = raw
-      ? {
-          imdb_id: (raw['imdb_id'] ?? '') as string,
-          title: (raw['title'] ?? raw['imdb_title'] ?? raw['rag_title'] ?? '') as string,
-          year: (raw['year'] ?? raw['imdb_year'] ?? raw['rag_year']) as number | undefined,
-          rating: (raw['rating'] ?? raw['imdb_rating']) as number | undefined,
-          plot: (raw['plot'] ?? raw['imdb_plot'] ?? raw['rag_plot']) as string | undefined,
-          genres: (raw['genres'] ?? raw['imdb_genres'] ?? raw['rag_genre'] ?? []) as string[],
-          poster_url: (raw['poster_url'] ?? raw['imdb_poster_url']) as string | undefined,
-          directors: (raw['directors'] ?? raw['imdb_directors'] ?? []) as string[],
-          stars: (raw['stars'] ?? raw['imdb_stars'] ?? []) as string[],
-        }
+    const confirmed = event.confirmed_movie
+      ? this.normalizeMovie(event.confirmed_movie)
       : undefined;
 
     this.updateSession(session_id, (s) => ({
@@ -303,16 +295,40 @@ export class ChatService {
       phase: event.phase,
       candidates: event.candidates,
       confirmed_movie: confirmed,
-      // Rename session to "Movie (Year)" once a movie is confirmed
-      title:
-        confirmed && event.phase === 'qa'
-          ? `${confirmed.title}${confirmed.year ? ` (${confirmed.year})` : ''}`
-          : s.title,
+      title: this.sessionTitle(event.phase, confirmed, s.title),
     }));
   }
 
   private setStreaming(session_id: string, streaming: boolean): void {
     this.updateSession(session_id, (s) => ({ ...s, streaming }));
+  }
+
+  /** Normalise whatever shape the backend sends into a clean ConfirmedMovie. */
+  normalizeMovie(raw: ConfirmedMovie | Record<string, unknown>): ConfirmedMovie {
+    const r = raw as Record<string, unknown>;
+    return {
+      imdb_id: (r['imdb_id'] ?? '') as string,
+      title: (r['title'] ?? r['imdb_title'] ?? r['rag_title'] ?? '') as string,
+      year: (r['year'] ?? r['imdb_year'] ?? r['rag_year']) as number | undefined,
+      rating: (r['rating'] ?? r['imdb_rating']) as number | undefined,
+      plot: (r['plot'] ?? r['imdb_plot'] ?? r['rag_plot']) as string | undefined,
+      genres: (r['genres'] ?? r['imdb_genres'] ?? r['rag_genre'] ?? []) as string[],
+      poster_url: (r['poster_url'] ?? r['imdb_poster_url']) as string | undefined,
+      directors: (r['directors'] ?? r['imdb_directors'] ?? []) as string[],
+      stars: (r['stars'] ?? r['imdb_stars'] ?? []) as string[],
+    };
+  }
+
+  /** Derive the session display title — movie name for qa, first message otherwise. */
+  private sessionTitle(
+    phase: Phase,
+    movie: ConfirmedMovie | undefined,
+    fallback: string | null | undefined,
+  ): string {
+    if (phase === 'qa' && movie?.title) {
+      return `${movie.title}${movie.year ? ` (${movie.year})` : ''}`;
+    }
+    return fallback ? this.truncate(fallback) : 'Conversation';
   }
 
   private deriveTitle(messages: Message[]): string {
