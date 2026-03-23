@@ -64,6 +64,13 @@ export interface Message {
   created_at: string;
 }
 
+export interface SessionSummary {
+  session_id: string;
+  phase: Phase;
+  updated_at: string;
+  first_message?: string | null;
+}
+
 export interface SessionHistory {
   session_id: string;
   phase: Phase;

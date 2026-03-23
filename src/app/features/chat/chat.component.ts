@@ -1,5 +1,6 @@
 import {
   Component,
+  OnInit,
   signal,
   computed,
   afterNextRender,
@@ -90,15 +91,18 @@ import { MoviePanelComponent } from './components/movie-panel.component';
   `,
   styleUrls: ['./chat.component.scss'],
 })
-export class ChatComponent {
+export class ChatComponent implements OnInit {
   inputText = '';
   private scrollRef = viewChild<ElementRef<HTMLDivElement>>('scrollAnchor');
 
   constructor(public chat: ChatService) {
-    // Auto-scroll when messages change
     afterNextRender(() => {
       this.scrollToBottom();
     });
+  }
+
+  ngOnInit(): void {
+    this.chat.restoreSessions();
   }
 
   session = computed(() => this.chat.activeSession);

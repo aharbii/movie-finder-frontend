@@ -77,6 +77,9 @@ export class AuthService {
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
     this.isAuthenticated.set(false);
-    this.router.navigate(['/login']);
+    this.router.navigate(['/login']).then(() => {
+      // Reload to flush all in-memory state (sessions, etc.)
+      window.location.reload();
+    });
   }
 }

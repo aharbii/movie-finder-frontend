@@ -7,6 +7,7 @@ import {
   Message,
   Phase,
   SessionHistory,
+  SessionSummary,
   SseDoneEvent,
   SseEvent,
 } from '../models';
@@ -58,6 +59,30 @@ export class ChatService {
     this.sessions.update((list) => [session, ...list]);
     this.activeSessionId.set(session_id);
     return session_id;
+  }
+
+  /** Called once after login or on page reload to populate the sidebar. */
+  async restoreSessions(): Promise<void> {
+    try {
+      const summaries = await firstValueFrom(
+        this.http.get<SessionSummary[]>(`${this.base}/chat/sessions`),
+      );
+      // Build lightweight session entries; full messages are loaded on demand.
+      const restored: ChatSession[] = summaries.map((s) => ({
+        session_id: s.session_id,
+        title: s.first_message ? this.truncate(s.first_message) : 'Conversation',
+        phase: s.phase,
+        messages: [],
+        streaming: false,
+      }));
+      this.sessions.set(restored);
+      if (restored.length) {
+        // Pre-load the most recent session's messages
+        await this.loadHistory(restored[0].session_id);
+      }
+    } catch {
+      // Endpoint not yet available or network error — start with empty state
+    }
   }
 
   async loadHistory(session_id: string): Promise<void> {
