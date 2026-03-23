@@ -112,6 +112,17 @@ export class ChatService {
     this.activeSessionId.set(session_id);
   }
 
+  async deleteSession(session_id: string): Promise<void> {
+    await firstValueFrom(
+      this.http.delete(`${this.base}/chat/${session_id}`, { observe: 'response' }),
+    );
+    this.sessions.update((list) => list.filter((s) => s.session_id !== session_id));
+    if (this.activeSessionId() === session_id) {
+      const remaining = this.sessions();
+      this.activeSessionId.set(remaining.length ? remaining[0].session_id : null);
+    }
+  }
+
   // ── Sending a message via SSE ─────────────────────────────────────────────
 
   async sendMessage(session_id: string, text: string): Promise<void> {

@@ -17,7 +17,7 @@ import { ChatSession } from '../../../core/models';
 
       <nav class="session-list">
         @for (session of chat.sessions(); track session.session_id) {
-          <button
+          <div
             class="session-item"
             [class.active]="session.session_id === chat.activeSessionId()"
             (click)="chat.selectSession(session.session_id)"
@@ -26,7 +26,12 @@ import { ChatSession } from '../../../core/models';
             <span class="session-phase phase-{{ session.phase }}">
               {{ session.phase }}
             </span>
-          </button>
+            <button
+              class="btn-delete"
+              title="Delete conversation"
+              (click)="deleteSession($event, session.session_id)"
+            >✕</button>
+          </div>
         } @empty {
           <p class="no-sessions">No conversations yet.</p>
         }
@@ -90,18 +95,37 @@ import { ChatSession } from '../../../core/models';
     .session-item {
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      gap: 6px;
       padding: 0.5rem 0.75rem;
       border-radius: 8px;
-      border: none;
       background: transparent;
       color: var(--text);
       cursor: pointer;
-      text-align: left;
       font-size: 0.88rem;
 
       &:hover { background: var(--bg); }
+      &:hover .btn-delete { opacity: 1; }
       &.active { background: rgba(99, 102, 241, 0.15); }
+    }
+
+    .btn-delete {
+      flex-shrink: 0;
+      margin-left: auto;
+      width: 20px;
+      height: 20px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      border-radius: 4px;
+      cursor: pointer;
+      opacity: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.1s, color 0.1s;
+
+      &:hover { color: var(--error); background: rgba(239,68,68,0.1); }
     }
 
     .session-title {
@@ -156,5 +180,10 @@ export class SessionSidebarComponent {
 
   newChat(): void {
     this.chat.newSession();
+  }
+
+  deleteSession(event: MouseEvent, session_id: string): void {
+    event.stopPropagation();
+    this.chat.deleteSession(session_id);
   }
 }
