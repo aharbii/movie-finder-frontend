@@ -1,0 +1,46 @@
+server {
+    listen       80;
+    server_name  _;
+    root         /usr/share/nginx/html;
+    index        index.html;
+
+    # ── Compression ─────────────────────────────────────────────────────────
+    gzip            on;
+    gzip_types      text/plain text/css application/json
+                    application/javascript text/javascript;
+    gzip_min_length 1024;
+
+    # ── Angular SPA ──────────────────────────────────────────────────────────
+    # Serve static files directly; fall back to index.html for all other
+    # routes so the Angular router can handle client-side navigation.
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # ── API reverse-proxy ────────────────────────────────────────────────────
+    # Mirrors the dev-server proxy (proxy.conf.js) so the frontend makes
+    # same-origin requests and the backend needs no CORS configuration.
+    #
+    # BACKEND_URL is substituted at container start by docker-entrypoint.sh
+    # (e.g. http://movie-finder-backend:8000).
+    location ~ ^/(auth|chat|health)(/|$) {
+        proxy_pass          ${BACKEND_URL};
+        proxy_http_version  1.1;
+        proxy_set_header    Host              $host;
+        proxy_set_header    X-Real-IP         $remote_addr;
+        proxy_set_header    X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header    X-Forwarded-Proto $scheme;
+
+        # Required for SSE streaming (POST /chat returns text/event-stream).
+        proxy_buffering         off;
+        proxy_cache             off;
+        proxy_read_timeout      300s;
+        proxy_set_header        Connection '';
+        chunked_transfer_encoding on;
+    }
+
+    # ── Security headers ─────────────────────────────────────────────────────
+    add_header X-Frame-Options        SAMEORIGIN;
+    add_header X-Content-Type-Options nosniff;
+    add_header Referrer-Policy        strict-origin-when-cross-origin;
+}
