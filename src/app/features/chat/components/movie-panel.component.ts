@@ -38,6 +38,18 @@ import { ConfirmedMovie } from '../../../core/models';
             }
           </div>
         }
+        @if (movie().directors?.length) {
+          <div class="movie-meta">
+            <span class="meta-label">Director</span>
+            {{ movie().directors!.join(', ') }}
+          </div>
+        }
+        @if (movie().stars?.length) {
+          <div class="movie-meta">
+            <span class="meta-label">Stars</span>
+            {{ movie().stars!.join(', ') }}
+          </div>
+        }
         @if (movie().plot) {
           <p class="movie-plot">{{ movie().plot }}</p>
         }
@@ -97,6 +109,22 @@ import { ConfirmedMovie } from '../../../core/models';
       border-radius: 999px;
       background: rgba(99, 102, 241, 0.15);
       color: var(--accent);
+    }
+
+    .movie-meta {
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .meta-label {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      opacity: 0.6;
+      margin-bottom: 1px;
     }
 
     .movie-plot {

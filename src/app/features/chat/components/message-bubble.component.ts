@@ -1,5 +1,7 @@
-import { Component, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { marked } from 'marked';
 import { Message } from '../../../core/models';
 
 @Component({
@@ -9,7 +11,11 @@ import { Message } from '../../../core/models';
   template: `
     <div class="bubble-wrap" [class.user]="msg().role === 'user'">
       <div class="bubble" [class.assistant]="msg().role === 'assistant'">
-        <p class="bubble-text">{{ msg().content }}</p>
+        @if (msg().role === 'assistant') {
+          <div class="bubble-text markdown" [innerHTML]="html()"></div>
+        } @else {
+          <p class="bubble-text">{{ msg().content }}</p>
+        }
         <span class="bubble-time">{{ msg().created_at | date:'shortTime' }}</span>
       </div>
     </div>
@@ -44,6 +50,19 @@ import { Message } from '../../../core/models';
       word-break: break-word;
     }
 
+    .markdown {
+      white-space: normal;
+
+      p        { margin: 0 0 0.4em; }
+      p:last-child { margin-bottom: 0; }
+      strong   { font-weight: 700; }
+      em       { font-style: italic; }
+      ul, ol   { margin: 0.3em 0 0.4em 1.2em; padding: 0; }
+      li       { margin-bottom: 0.15em; }
+      code     { font-family: monospace; font-size: 0.88em;
+                 background: rgba(0,0,0,0.15); padding: 1px 4px; border-radius: 3px; }
+    }
+
     .bubble-time {
       display: block;
       font-size: 0.7rem;
@@ -55,4 +74,11 @@ import { Message } from '../../../core/models';
 })
 export class MessageBubbleComponent {
   msg = input.required<Message>();
+
+  private sanitizer = inject(DomSanitizer);
+
+  html = computed<SafeHtml>(() => {
+    const raw = marked.parse(this.msg().content) as string;
+    return this.sanitizer.bypassSecurityTrustHtml(raw);
+  });
 }

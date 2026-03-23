@@ -254,11 +254,35 @@ export class ChatService {
   }
 
   private applyDoneEvent(session_id: string, event: SseDoneEvent): void {
+    // The backend currently sends confirmed_movie_data as a raw EnrichedMovie
+    // dict (fields: imdb_title, imdb_year, imdb_poster_url, …) rather than the
+    // ConfirmedMovie contract shape (title, year, poster_url, …).
+    // Normalise here so the UI always works regardless of which shape arrives.
+    const raw = event.confirmed_movie as Record<string, unknown> | undefined;
+    const confirmed = raw
+      ? {
+          imdb_id: (raw['imdb_id'] ?? '') as string,
+          title: (raw['title'] ?? raw['imdb_title'] ?? raw['rag_title'] ?? '') as string,
+          year: (raw['year'] ?? raw['imdb_year'] ?? raw['rag_year']) as number | undefined,
+          rating: (raw['rating'] ?? raw['imdb_rating']) as number | undefined,
+          plot: (raw['plot'] ?? raw['imdb_plot'] ?? raw['rag_plot']) as string | undefined,
+          genres: (raw['genres'] ?? raw['imdb_genres'] ?? raw['rag_genre'] ?? []) as string[],
+          poster_url: (raw['poster_url'] ?? raw['imdb_poster_url']) as string | undefined,
+          directors: (raw['directors'] ?? raw['imdb_directors'] ?? []) as string[],
+          stars: (raw['stars'] ?? raw['imdb_stars'] ?? []) as string[],
+        }
+      : undefined;
+
     this.updateSession(session_id, (s) => ({
       ...s,
       phase: event.phase,
       candidates: event.candidates,
-      confirmed_movie: event.confirmed_movie,
+      confirmed_movie: confirmed,
+      // Rename session to "Movie (Year)" once a movie is confirmed
+      title:
+        confirmed && event.phase === 'qa'
+          ? `${confirmed.title}${confirmed.year ? ` (${confirmed.year})` : ''}`
+          : s.title,
     }));
   }
 

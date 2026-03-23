@@ -40,6 +40,8 @@ export interface ConfirmedMovie {
   plot?: string;
   rating?: number;
   poster_url?: string;
+  directors?: string[];
+  stars?: string[];
   [key: string]: unknown;
 }
 
