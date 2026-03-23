@@ -29,6 +29,7 @@ export interface MovieCandidate {
   rag_title: string;
   imdb_id: string;
   confidence: number;
+  imdb_poster_url?: string;
 }
 
 export interface ConfirmedMovie {

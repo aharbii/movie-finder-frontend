@@ -14,20 +14,28 @@ import { MovieCandidate } from '../../../core/models';
       <div class="cards-grid">
         @for (c of candidates(); track c.imdb_id) {
           <div class="card">
-            <span class="card-title">{{ c.rag_title }}</span>
-            <span class="card-id">{{ c.imdb_id }}</span>
-            <div class="confidence-bar">
-              <div
-                class="confidence-fill"
-                [style.width.%]="c.confidence * 100"
-                [class.high]="c.confidence >= 0.75"
-                [class.medium]="c.confidence >= 0.5 && c.confidence < 0.75"
-                [class.low]="c.confidence < 0.5"
-              ></div>
+            @if (c.imdb_poster_url) {
+              <a [href]="'https://www.imdb.com/title/' + c.imdb_id" target="_blank" rel="noopener">
+                <img class="card-poster" [src]="c.imdb_poster_url" [alt]="c.rag_title + ' poster'" />
+              </a>
+            } @else {
+              <div class="card-poster-placeholder">🎬</div>
+            }
+            <div class="card-body">
+              <span class="card-title">{{ c.rag_title }}</span>
+              <div class="confidence-bar">
+                <div
+                  class="confidence-fill"
+                  [style.width.%]="c.confidence * 100"
+                  [class.high]="c.confidence >= 0.75"
+                  [class.medium]="c.confidence >= 0.5 && c.confidence < 0.75"
+                  [class.low]="c.confidence < 0.5"
+                ></div>
+              </div>
+              <span class="confidence-label">
+                {{ (c.confidence * 100).toFixed(0) }}% match
+              </span>
             </div>
-            <span class="confidence-label">
-              {{ (c.confidence * 100).toFixed(0) }}% match
-            </span>
           </div>
         }
       </div>
@@ -56,9 +64,37 @@ import { MovieCandidate } from '../../../core/models';
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 10px;
-      padding: 0.75rem 1rem;
-      min-width: 180px;
+      overflow: hidden;
+      min-width: 150px;
+      max-width: 180px;
       flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    a { display: block; line-height: 0; }
+
+    .card-poster {
+      width: 100%;
+      aspect-ratio: 2/3;
+      object-fit: cover;
+      display: block;
+
+      &:hover { opacity: 0.85; transition: opacity 0.15s; }
+    }
+
+    .card-poster-placeholder {
+      width: 100%;
+      aspect-ratio: 2/3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      background: var(--surface);
+    }
+
+    .card-body {
+      padding: 0.6rem 0.75rem;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -66,12 +102,8 @@ import { MovieCandidate } from '../../../core/models';
 
     .card-title {
       font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .card-id {
-      font-size: 0.75rem;
-      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.3;
     }
 
     .confidence-bar {

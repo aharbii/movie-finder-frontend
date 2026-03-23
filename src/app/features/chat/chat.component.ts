@@ -36,7 +36,9 @@ import { MoviePanelComponent } from './components/movie-panel.component';
           <!-- Message list -->
           <div class="messages-area" #scrollAnchor>
             @for (msg of s.messages; track msg.id) {
-              <app-message-bubble [msg]="msg" />
+              @if (msg.content) {
+                <app-message-bubble [msg]="msg" />
+              }
             }
 
             @if (s.streaming) {

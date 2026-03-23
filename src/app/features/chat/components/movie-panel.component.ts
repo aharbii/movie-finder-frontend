@@ -9,11 +9,17 @@ import { ConfirmedMovie } from '../../../core/models';
   template: `
     <aside class="movie-panel">
       @if (movie().poster_url) {
-        <img
-          class="poster"
-          [src]="movie().poster_url"
-          [alt]="movie().title + ' poster'"
-        />
+        <a
+          [href]="movie().imdb_id ? 'https://www.imdb.com/title/' + movie().imdb_id : movie().poster_url"
+          target="_blank"
+          rel="noopener"
+        >
+          <img
+            class="poster"
+            [src]="movie().poster_url"
+            [alt]="movie().title + ' poster'"
+          />
+        </a>
       }
       <div class="movie-info">
         <h2 class="movie-title">{{ movie().title }}</h2>
@@ -34,16 +40,6 @@ import { ConfirmedMovie } from '../../../core/models';
         }
         @if (movie().plot) {
           <p class="movie-plot">{{ movie().plot }}</p>
-        }
-        @if (movie().imdb_id) {
-          <a
-            class="imdb-link"
-            [href]="'https://www.imdb.com/title/' + movie().imdb_id"
-            target="_blank"
-            rel="noopener"
-          >
-            View on IMDB ↗
-          </a>
         }
       </div>
     </aside>
@@ -110,13 +106,9 @@ import { ConfirmedMovie } from '../../../core/models';
       margin: 0;
     }
 
-    .imdb-link {
-      font-size: 0.85rem;
-      color: var(--accent);
-      text-decoration: none;
+    a { display: block; line-height: 0; }
 
-      &:hover { text-decoration: underline; }
-    }
+    .poster:hover { opacity: 0.88; transition: opacity 0.15s; }
   `],
 })
 export class MoviePanelComponent {
