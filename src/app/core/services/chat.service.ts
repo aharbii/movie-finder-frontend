@@ -170,7 +170,15 @@ export class ChatService {
         if (event.type === 'token') {
           this.appendToMessage(session_id, assistantMsgId, event.content);
         } else if (event.type === 'done') {
-          this.applyDoneEvent(session_id, event as SseDoneEvent);
+          const done = event as SseDoneEvent;
+          // qa_agent uses ainvoke (no streaming), so no token events are
+          // emitted. Fall back to the reply field from the done event.
+          const session = this.sessions().find((s) => s.session_id === session_id);
+          const placeholder = session?.messages.find((m) => m.id === assistantMsgId);
+          if (!placeholder?.content && done.reply) {
+            this.updateMessageContent(session_id, assistantMsgId, done.reply);
+          }
+          this.applyDoneEvent(session_id, done);
         }
       }
     }
