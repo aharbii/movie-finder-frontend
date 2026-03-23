@@ -20,7 +20,7 @@ import { ChatSession } from '../../../core/models';
           <div
             class="session-item"
             [class.active]="session.session_id === chat.activeSessionId()"
-            (click)="chat.selectSession(session.session_id)"
+            (click)="selectSession(session.session_id)"
           >
             <span class="session-title">{{ session.title }}</span>
             <span class="session-phase phase-{{ session.phase }}">
@@ -180,6 +180,10 @@ export class SessionSidebarComponent {
 
   newChat(): void {
     this.chat.newSession();
+  }
+
+  selectSession(session_id: string): void {
+    this.chat.selectSession(session_id);
   }
 
   deleteSession(event: MouseEvent, session_id: string): void {

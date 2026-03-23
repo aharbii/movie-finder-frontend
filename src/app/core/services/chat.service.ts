@@ -64,27 +64,33 @@ export class ChatService {
 
   /** Called once after login or on page reload to populate the sidebar. */
   async restoreSessions(): Promise<void> {
+    let summaries: SessionSummary[];
     try {
-      const summaries = await firstValueFrom(
+      summaries = await firstValueFrom(
         this.http.get<SessionSummary[]>(`${this.base}/chat/sessions`),
       );
-      const restored: ChatSession[] = summaries.map((s) => {
-        const movie = s.confirmed_movie ? this.normalizeMovie(s.confirmed_movie) : undefined;
-        return {
-          session_id: s.session_id,
-          title: this.sessionTitle(s.phase, movie, s.first_message),
-          phase: s.phase,
-          messages: [],
-          confirmed_movie: movie,
-          streaming: false,
-        };
-      });
-      this.sessions.set(restored);
-      if (restored.length) {
-        await this.loadHistory(restored[0].session_id);
-      }
     } catch {
-      // Endpoint not yet available or network error — start with empty state
+      return; // endpoint not ready or network error — leave state empty
+    }
+
+    const restored: ChatSession[] = summaries.map((s) => {
+      const movie = s.confirmed_movie ? this.normalizeMovie(s.confirmed_movie) : undefined;
+      return {
+        session_id: s.session_id,
+        title: this.sessionTitle(s.phase, movie, s.first_message),
+        phase: s.phase,
+        messages: [],
+        confirmed_movie: movie,
+        streaming: false,
+      };
+    });
+    this.sessions.set(restored);
+
+    if (restored.length) {
+      // Activate and load the most recently updated session.
+      // Other sessions' messages are loaded lazily on selectSession().
+      this.activeSessionId.set(restored[0].session_id);
+      await this.loadHistory(restored[0].session_id).catch(() => {});
     }
   }
 
@@ -105,11 +111,14 @@ export class ChatService {
       confirmed_movie: movie,
       streaming: false,
     });
-    this.activeSessionId.set(session_id);
   }
 
-  selectSession(session_id: string): void {
+  async selectSession(session_id: string): Promise<void> {
     this.activeSessionId.set(session_id);
+    const session = this.sessions().find((s) => s.session_id === session_id);
+    if (session && !session.messages.length) {
+      await this.loadHistory(session_id).catch(() => {});
+    }
   }
 
   async deleteSession(session_id: string): Promise<void> {
