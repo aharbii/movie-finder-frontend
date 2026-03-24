@@ -16,12 +16,13 @@
 //      and an optional production deployment (DEPLOY_PRODUCTION param).
 //
 // ── Required Jenkins credentials ────────────────────────────────────────────
-//  acr-login-server   Secret text  — ACR hostname, e.g. myregistry.azurecr.io
-//  acr-credentials    Username/Password — ACR service-principal
-//                     USR = client-id, PSW = client-secret
-//  azure-sp           Username/Password — Azure service-principal for az CLI
-//                     USR = client-id, PSW = client-secret
-//                     (set AZURE_TENANT_ID + AZURE_SUBSCRIPTION_ID below)
+//  acr-login-server          Secret text        — ACR hostname
+//  acr-credentials           Username/Password  — ACR service-principal
+//  azure-sp                  Username/Password  — Azure SP (USR=client-id, PSW=secret)
+//  azure-tenant-id           Secret text        — Azure tenant UUID
+//  aca-rg                    Secret text        — Container Apps resource group
+//  aca-frontend-staging-name Secret text        — Staging Container App name
+//  aca-frontend-name         Secret text        — Production Container App name
 //
 // ── Required Jenkins plugins ─────────────────────────────────────────────────
 //  Docker Pipeline, Credentials Binding, Git, Coverage (or Cobertura), JUnit
@@ -55,15 +56,9 @@ pipeline {
     }
 
     environment {
-        SERVICE_NAME   = 'movie-finder-frontend'
-        NODE_IMAGE     = 'node:20-alpine'
-        DOCKER_IMAGE   = 'docker:24-dind'
-
-        // Azure tenant and subscription — not secrets, safe as env vars.
-        // Override per-environment in Jenkins global configuration if needed.
-        AZURE_TENANT_ID       = 'your-tenant-id'
-        AZURE_SUBSCRIPTION_ID = 'your-subscription-id'
-        AZURE_RESOURCE_GROUP  = 'movie-finder-rg'
+        SERVICE_NAME = 'movie-finder-frontend'
+        NODE_IMAGE   = 'node:20-alpine'
+        DOCKER_IMAGE = 'docker:24-dind'
     }
 
     stages {
@@ -205,9 +200,12 @@ pipeline {
             }
             agent { label 'deploy' }
             environment {
-                ACR_SERVER  = credentials('acr-login-server')
-                AZURE_SP    = credentials('azure-sp')
-                IMAGE_TAG   = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_COMMIT.take(8)}"
+                ACR_SERVER      = credentials('acr-login-server')
+                AZURE_SP        = credentials('azure-sp')
+                AZURE_TENANT_ID = credentials('azure-tenant-id')
+                ACA_RG          = credentials('aca-rg')
+                ACA_APP_NAME    = credentials('aca-frontend-staging-name')
+                IMAGE_TAG       = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_COMMIT.take(8)}"
             }
             steps {
                 sh '''
@@ -218,9 +216,9 @@ pipeline {
                 '''
                 sh '''
                     az containerapp update \
-                        --name    movie-finder-frontend-staging \
-                        --resource-group "${AZURE_RESOURCE_GROUP}" \
-                        --image   "${IMAGE_TAG}"
+                        --name           "${ACA_APP_NAME}" \
+                        --resource-group "${ACA_RG}" \
+                        --image          "${IMAGE_TAG}"
                 '''
             }
         }
@@ -238,9 +236,12 @@ pipeline {
             }
             agent { label 'deploy' }
             environment {
-                ACR_SERVER  = credentials('acr-login-server')
-                AZURE_SP    = credentials('azure-sp')
-                IMAGE_TAG   = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_TAG_NAME}"
+                ACR_SERVER      = credentials('acr-login-server')
+                AZURE_SP        = credentials('azure-sp')
+                AZURE_TENANT_ID = credentials('azure-tenant-id')
+                ACA_RG          = credentials('aca-rg')
+                ACA_APP_NAME    = credentials('aca-frontend-name')
+                IMAGE_TAG       = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_TAG_NAME}"
             }
             steps {
                 sh '''
@@ -251,9 +252,9 @@ pipeline {
                 '''
                 sh '''
                     az containerapp update \
-                        --name    movie-finder-frontend \
-                        --resource-group "${AZURE_RESOURCE_GROUP}" \
-                        --image   "${IMAGE_TAG}"
+                        --name           "${ACA_APP_NAME}" \
+                        --resource-group "${ACA_RG}" \
+                        --image          "${IMAGE_TAG}"
                 '''
             }
         }
