@@ -25,7 +25,7 @@
 //  aca-frontend-name         Secret text        — Production Container App name
 //
 // ── Required Jenkins plugins ─────────────────────────────────────────────────
-//  Credentials Binding, Git, Coverage (or Cobertura), JUnit
+//  Credentials Binding, Git, JUnit
 //  Note: docker run is used directly in steps — Docker Pipeline plugin not needed.
 //  Note: stages use "agent any" — schedules on the built-in controller or any connected agent.
 //
@@ -111,11 +111,6 @@ pipeline {
                 always {
                     junit allowEmptyResults: true,
                           testResults: 'test-results/frontend-results.xml'
-                    recordCoverage(
-                        tools: [[parser: 'COBERTURA', pattern: 'coverage/cobertura-coverage.xml']],
-                        id: 'frontend-coverage',
-                        name: 'Frontend Coverage'
-                    )
                 }
             }
         }
