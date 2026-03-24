@@ -59,7 +59,7 @@ pipeline {
 
     environment {
         SERVICE_NAME = 'movie-finder-frontend'
-        NODE_IMAGE   = 'node:20-alpine'
+        NODE_IMAGE   = 'node:22-alpine'
     }
 
     stages {
@@ -76,7 +76,7 @@ pipeline {
                         -v "\$(pwd)":/workspace \
                         -w /workspace \
                         ${NODE_IMAGE} sh -c \
-                        'npm ci --prefer-offline && npm run typecheck'
+                        'npm install -g npm@11.8.0 --prefer-offline && npm ci --prefer-offline && npm run typecheck'
                 """
             }
         }
@@ -89,7 +89,7 @@ pipeline {
                         -v "\$(pwd)":/workspace \
                         -w /workspace \
                         ${NODE_IMAGE} sh -c \
-                        'npm ci --prefer-offline && npm run lint && npm run format:check'
+                        'npm install -g npm@11.8.0 --prefer-offline && npm ci --prefer-offline && npm run lint && npm run format:check'
                 """
             }
         }
@@ -104,7 +104,7 @@ pipeline {
                         -w /workspace \
                         -e VITEST_JUNIT_OUTPUT_FILE=test-results/frontend-results.xml \
                         ${NODE_IMAGE} sh -c \
-                        'npm ci --prefer-offline && npm run test:ci'
+                        'npm install -g npm@11.8.0 --prefer-offline && npm ci --prefer-offline && npm run test:ci'
                 """
             }
             post {
@@ -135,7 +135,7 @@ pipeline {
                         -v "\$(pwd)":/workspace \
                         -w /workspace \
                         ${NODE_IMAGE} sh -c \
-                        'npm ci --prefer-offline && npx ng build --configuration=production'
+                        'npm install -g npm@11.8.0 --prefer-offline && npm ci --prefer-offline && npx ng build --configuration=production'
                 """
             }
             post {
