@@ -22,18 +22,19 @@
 # =============================================================================
 
 # ── Stage 1: install dependencies ────────────────────────────────────────────
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 
 WORKDIR /app
 COPY package.json package-lock.json ./
 
-# npm download cache is mounted from the BuildKit cache — never stored in the
-# image layer, so subsequent builds are fast without bloating the image.
+# Upgrade npm to match the version declared in packageManager (npm@11.8.0).
+# The cache mount keeps the download off the image layer.
 RUN --mount=type=cache,target=/root/.npm \
+    npm install -g npm@11.8.0 --prefer-offline && \
     npm ci --prefer-offline
 
 # ── Stage 2: build ───────────────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
