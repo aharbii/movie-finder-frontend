@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import type { MovieCandidate } from '../../../core/models';
+import { MovieCandidate } from '../../../core/models';
 
 @Component({
   selector: 'app-candidate-cards',

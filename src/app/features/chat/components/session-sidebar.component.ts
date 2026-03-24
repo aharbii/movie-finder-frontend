@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import type { ChatService } from '../../../core/services/chat.service';
-import type { AuthService } from '../../../core/services/auth.service';
+import { ChatService } from '../../../core/services/chat.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 @Component({
   selector: 'app-session-sidebar',

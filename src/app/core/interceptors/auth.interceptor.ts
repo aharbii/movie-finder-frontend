@@ -1,12 +1,7 @@
-import type {
-  HttpInterceptorFn,
-  HttpRequest,
-  HttpHandlerFn,
-  HttpEvent,
-} from '@angular/common/http';
+import { HttpInterceptorFn, HttpRequest, HttpHandlerFn, HttpEvent } from '@angular/common/http';
 import { HttpErrorResponse } from '@angular/common/http';
 import { inject } from '@angular/core';
-import type { Observable } from 'rxjs';
+import { Observable } from 'rxjs';
 import { from, switchMap, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';

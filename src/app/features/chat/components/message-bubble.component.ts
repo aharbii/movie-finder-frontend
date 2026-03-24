@@ -1,9 +1,9 @@
 import { Component, computed, inject, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import type { SafeHtml } from '@angular/platform-browser';
+import { SafeHtml } from '@angular/platform-browser';
 import { DomSanitizer } from '@angular/platform-browser';
 import { marked } from 'marked';
-import type { Message } from '../../../core/models';
+import { Message } from '../../../core/models';
 
 @Component({
   selector: 'app-message-bubble',

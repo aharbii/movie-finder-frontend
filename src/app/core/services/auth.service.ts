@@ -1,9 +1,9 @@
 import { Injectable, signal } from '@angular/core';
-import type { HttpClient } from '@angular/common/http';
-import type { Router } from '@angular/router';
+import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { Token, UserCreate } from '../models';
+import { Token, UserCreate } from '../models';
 
 const ACCESS_KEY = 'mf_access_token';
 const REFRESH_KEY = 'mf_refresh_token';

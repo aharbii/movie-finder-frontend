@@ -1,8 +1,8 @@
 import { Injectable, signal } from '@angular/core';
-import type { HttpClient } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type {
+import {
   ChatSession,
   ConfirmedMovie,
   Message,
@@ -12,7 +12,7 @@ import type {
   SseDoneEvent,
   SseEvent,
 } from '../models';
-import type { AuthService } from './auth.service';
+import { AuthService } from './auth.service';
 
 function uuid(): string {
   return crypto.randomUUID();

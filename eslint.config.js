@@ -33,7 +33,7 @@ module.exports = tseslint.config(
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       '@typescript-eslint/explicit-function-return-type': 'off',
-      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'type-imports' }],
+      '@typescript-eslint/consistent-type-imports': ['error', { prefer: 'no-type-imports' }],
       // Empty arrow functions are a deliberate swallow-error pattern (e.g. .catch(() => {}))
       '@typescript-eslint/no-empty-function': ['error', { allow: ['arrowFunctions'] }],
     },

@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import type { ConfirmedMovie } from '../../../core/models';
+import { ConfirmedMovie } from '../../../core/models';
 
 @Component({
   selector: 'app-movie-panel',

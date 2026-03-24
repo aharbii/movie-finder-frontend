@@ -1,8 +1,8 @@
-import type { OnInit, ElementRef } from '@angular/core';
+import { OnInit, ElementRef } from '@angular/core';
 import { Component, computed, afterNextRender, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import type { ChatService } from '../../core/services/chat.service';
+import { ChatService } from '../../core/services/chat.service';
 import { SessionSidebarComponent } from './components/session-sidebar.component';
 import { MessageBubbleComponent } from './components/message-bubble.component';
 import { CandidateCardsComponent } from './components/candidate-cards.component';
