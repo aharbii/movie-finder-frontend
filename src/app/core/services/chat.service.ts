@@ -1,8 +1,8 @@
 import { Injectable, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import type { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import {
+import type {
   ChatSession,
   ConfirmedMovie,
   Message,
@@ -12,7 +12,7 @@ import {
   SseDoneEvent,
   SseEvent,
 } from '../models';
-import { AuthService } from './auth.service';
+import type { AuthService } from './auth.service';
 
 function uuid(): string {
   return crypto.randomUUID();
@@ -96,9 +96,7 @@ export class ChatService {
 
   async loadHistory(session_id: string): Promise<void> {
     const history = await firstValueFrom(
-      this.http.get<SessionHistory>(
-        `${this.base}/chat/${session_id}/history`,
-      ),
+      this.http.get<SessionHistory>(`${this.base}/chat/${session_id}/history`),
     );
     const movie = history.confirmed_movie
       ? this.normalizeMovie(history.confirmed_movie)
@@ -159,7 +157,7 @@ export class ChatService {
 
     try {
       await this.streamSse(session_id, text, assistantMsgId);
-    } catch (err) {
+    } catch {
       this.updateMessageContent(session_id, assistantMsgId, '[Error — please retry]');
     } finally {
       this.setStreaming(session_id, false);
@@ -250,30 +248,22 @@ export class ChatService {
     });
   }
 
-  private updateSession(
-    session_id: string,
-    updater: (s: ChatSession) => ChatSession,
-  ): void {
-    this.sessions.update((list) =>
-      list.map((s) => (s.session_id === session_id ? updater(s) : s)),
-    );
+  private updateSession(session_id: string, updater: (s: ChatSession) => ChatSession): void {
+    this.sessions.update((list) => list.map((s) => (s.session_id === session_id ? updater(s) : s)));
   }
 
   private appendMessage(session_id: string, msg: Message): void {
     this.updateSession(session_id, (s) => ({
       ...s,
       messages: [...s.messages, msg],
-      title: s.title === 'New conversation' && msg.role === 'user'
-        ? this.truncate(msg.content)
-        : s.title,
+      title:
+        s.title === 'New conversation' && msg.role === 'user'
+          ? this.truncate(msg.content)
+          : s.title,
     }));
   }
 
-  private appendToMessage(
-    session_id: string,
-    msgId: string,
-    chunk: string,
-  ): void {
+  private appendToMessage(session_id: string, msgId: string, chunk: string): void {
     this.sessions.update((list) =>
       list.map((s) => {
         if (s.session_id !== session_id) return s;
@@ -287,19 +277,13 @@ export class ChatService {
     );
   }
 
-  private updateMessageContent(
-    session_id: string,
-    msgId: string,
-    content: string,
-  ): void {
+  private updateMessageContent(session_id: string, msgId: string, content: string): void {
     this.sessions.update((list) =>
       list.map((s) => {
         if (s.session_id !== session_id) return s;
         return {
           ...s,
-          messages: s.messages.map((m) =>
-            m.id === msgId ? { ...m, content } : m,
-          ),
+          messages: s.messages.map((m) => (m.id === msgId ? { ...m, content } : m)),
         };
       }),
     );

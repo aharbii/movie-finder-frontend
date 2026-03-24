@@ -4,11 +4,11 @@
 // Three pipeline modes, selected automatically by branch / tag context:
 //
 //  CONTRIBUTION  (feature branches, pull requests)
-//    → Type-check only. Fast feedback loop (< 3 min).
+//    → Type-check + Lint + Test with coverage. Fast feedback loop (< 5 min).
 //      Nothing is built or pushed.
 //
 //  INTEGRATION   (main branch)
-//    → Type-check + production build + Docker image pushed to ACR.
+//    → All CONTRIBUTION checks + production build + Docker image pushed to ACR.
 //      Optional: deploy to Azure staging slot (DEPLOY_STAGING param).
 //
 //  RELEASE       (git tags matching v*)
@@ -24,7 +24,7 @@
 //                     (set AZURE_TENANT_ID + AZURE_SUBSCRIPTION_ID below)
 //
 // ── Required Jenkins plugins ─────────────────────────────────────────────────
-//  Docker Pipeline, Credentials Binding, Git
+//  Docker Pipeline, Credentials Binding, Git, Coverage (or Cobertura), JUnit
 //
 // ── GitHub Webhook ───────────────────────────────────────────────────────────
 //  Payload URL : https://<jenkins>/github-webhook/
@@ -78,7 +78,46 @@ pipeline {
             }
             steps {
                 sh 'npm ci --prefer-offline'
-                sh 'npx tsc --noEmit'
+                sh 'npm run typecheck'
+            }
+        }
+
+        stage('Lint') {
+            agent {
+                docker { image "${NODE_IMAGE}" }
+            }
+            steps {
+                sh 'npm ci --prefer-offline'
+                sh 'npm run lint'
+                sh 'npm run format:check'
+            }
+        }
+
+        stage('Test') {
+            agent {
+                docker { image "${NODE_IMAGE}" }
+            }
+            environment {
+                // Vitest JUnit XML — consumed by Jenkins JUnit plugin
+                VITEST_JUNIT_OUTPUT_FILE = 'test-results/frontend-results.xml'
+            }
+            steps {
+                sh 'npm ci --prefer-offline'
+                sh 'mkdir -p test-results'
+                sh 'npm run test:ci'
+            }
+            post {
+                always {
+                    // Publish JUnit test results
+                    junit allowEmptyResults: true,
+                          testResults: 'test-results/frontend-results.xml'
+                    // Publish LCOV / Cobertura coverage
+                    recordCoverage(
+                        tools: [[parser: 'COBERTURA', pattern: 'coverage/cobertura-coverage.xml']],
+                        id: 'frontend-coverage',
+                        name: 'Frontend Coverage'
+                    )
+                }
             }
         }
 

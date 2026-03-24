@@ -1,9 +1,10 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink, Router } from '@angular/router';
+import type { Router } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { AuthService } from '../../core/services/auth.service';
+import type { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-register',
@@ -60,9 +61,7 @@ import { AuthService } from '../../core/services/auth.service';
           </button>
         </form>
 
-        <p class="auth-link">
-          Already have an account? <a routerLink="/login">Sign in</a>
-        </p>
+        <p class="auth-link">Already have an account? <a routerLink="/login">Sign in</a></p>
       </div>
     </div>
   `,
@@ -103,8 +102,7 @@ export class RegisterComponent {
       if (err.status === 422 && Array.isArray(err.error?.detail)) {
         // Surface FastAPI field-level validation errors
         const msgs: string[] = err.error.detail.map(
-          (d: { loc: string[]; msg: string }) =>
-            `${d.loc.slice(1).join('.')}: ${d.msg}`,
+          (d: { loc: string[]; msg: string }) => `${d.loc.slice(1).join('.')}: ${d.msg}`,
         );
         this.fieldErrors.set(msgs);
         return;

@@ -1,0 +1,57 @@
+# =============================================================================
+# Movie Finder Frontend — pre-commit configuration
+#
+# Install once from inside the frontend/ submodule root:
+#
+#   pre-commit install
+#
+# Prerequisites:
+#   node_modules must exist — run `npm ci` first.
+# =============================================================================
+
+repos:
+
+  # ── Universal file-health checks ────────────────────────────────────────────
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(dist|coverage|node_modules)/
+      - id: end-of-file-fixer
+        exclude: ^(dist|coverage|node_modules)/
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-illegal-windows-names
+      - id: check-merge-conflict
+      - id: detect-private-key
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        exclude: package-lock\.json$
+
+  # ── ESLint (TypeScript + HTML templates) ─────────────────────────────────
+  - repo: local
+    hooks:
+      - id: eslint-frontend
+        name: ESLint
+        language: node
+        entry: node_modules/.bin/eslint
+        args: [--max-warnings=0]
+        files: ^src/.*\.(ts|html)$
+        types: [file]
+        pass_filenames: true
+
+  # ── Prettier formatting check ─────────────────────────────────────────────
+  - repo: local
+    hooks:
+      - id: prettier-frontend
+        name: Prettier
+        language: node
+        entry: node_modules/.bin/prettier
+        args: [--check]
+        files: ^src/.*\.(ts|html|scss)$
+        types: [file]
+        pass_filenames: true

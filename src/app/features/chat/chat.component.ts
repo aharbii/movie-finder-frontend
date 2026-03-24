@@ -1,15 +1,8 @@
-import {
-  Component,
-  OnInit,
-  signal,
-  computed,
-  afterNextRender,
-  ElementRef,
-  viewChild,
-} from '@angular/core';
+import type { OnInit, ElementRef } from '@angular/core';
+import { Component, computed, afterNextRender, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { ChatService } from '../../core/services/chat.service';
+import type { ChatService } from '../../core/services/chat.service';
 import { SessionSidebarComponent } from './components/session-sidebar.component';
 import { MessageBubbleComponent } from './components/message-bubble.component';
 import { CandidateCardsComponent } from './components/candidate-cards.component';
@@ -43,9 +36,7 @@ import { MoviePanelComponent } from './components/movie-panel.component';
             }
 
             @if (s.streaming) {
-              <div class="typing-indicator">
-                <span></span><span></span><span></span>
-              </div>
+              <div class="typing-indicator"><span></span><span></span><span></span></div>
             }
           </div>
 
@@ -64,11 +55,7 @@ import { MoviePanelComponent } from './components/movie-panel.component';
               (keydown.enter)="onEnter($event)"
               [disabled]="s.streaming"
             ></textarea>
-            <button
-              class="btn-send"
-              (click)="send()"
-              [disabled]="s.streaming || !inputText.trim()"
-            >
+            <button class="btn-send" (click)="send()" [disabled]="s.streaming || !inputText.trim()">
               {{ s.streaming ? '…' : '→' }}
             </button>
           </div>

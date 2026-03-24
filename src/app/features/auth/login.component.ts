@@ -1,9 +1,10 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterLink, Router } from '@angular/router';
+import type { Router } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { AuthService } from '../../core/services/auth.service';
+import type { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -51,9 +52,7 @@ import { AuthService } from '../../core/services/auth.service';
           </button>
         </form>
 
-        <p class="auth-link">
-          No account? <a routerLink="/register">Create one</a>
-        </p>
+        <p class="auth-link">No account? <a routerLink="/register">Create one</a></p>
       </div>
     </div>
   `,
