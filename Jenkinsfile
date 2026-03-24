@@ -25,7 +25,9 @@
 //  aca-frontend-name         Secret text        — Production Container App name
 //
 // ── Required Jenkins plugins ─────────────────────────────────────────────────
-//  Docker Pipeline, Credentials Binding, Git, Coverage (or Cobertura), JUnit
+//  Credentials Binding, Git, Coverage (or Cobertura), JUnit
+//  Note: docker run is used directly in steps — Docker Pipeline plugin not needed.
+//  Note: stages use "agent any" — schedules on the built-in controller or any connected agent.
 //
 // ── GitHub Webhook ───────────────────────────────────────────────────────────
 //  Payload URL : https://<jenkins>/github-webhook/
@@ -58,7 +60,6 @@ pipeline {
     environment {
         SERVICE_NAME = 'movie-finder-frontend'
         NODE_IMAGE   = 'node:20-alpine'
-        DOCKER_IMAGE = 'docker:24-dind'
     }
 
     stages {
@@ -68,45 +69,48 @@ pipeline {
         // ====================================================================
 
         stage('Type-check') {
-            agent {
-                docker { image "${NODE_IMAGE}" }
-            }
+            agent any
             steps {
-                sh 'npm ci --prefer-offline'
-                sh 'npm run typecheck'
+                sh """
+                    docker run --rm \
+                        -v "\$(pwd)":/workspace \
+                        -w /workspace \
+                        ${NODE_IMAGE} sh -c \
+                        'npm ci --prefer-offline && npm run typecheck'
+                """
             }
         }
 
         stage('Lint') {
-            agent {
-                docker { image "${NODE_IMAGE}" }
-            }
+            agent any
             steps {
-                sh 'npm ci --prefer-offline'
-                sh 'npm run lint'
-                sh 'npm run format:check'
+                sh """
+                    docker run --rm \
+                        -v "\$(pwd)":/workspace \
+                        -w /workspace \
+                        ${NODE_IMAGE} sh -c \
+                        'npm ci --prefer-offline && npm run lint && npm run format:check'
+                """
             }
         }
 
         stage('Test') {
-            agent {
-                docker { image "${NODE_IMAGE}" }
-            }
-            environment {
-                // Vitest JUnit XML — consumed by Jenkins JUnit plugin
-                VITEST_JUNIT_OUTPUT_FILE = 'test-results/frontend-results.xml'
-            }
+            agent any
             steps {
-                sh 'npm ci --prefer-offline'
                 sh 'mkdir -p test-results'
-                sh 'npm run test:ci'
+                sh """
+                    docker run --rm \
+                        -v "\$(pwd)":/workspace \
+                        -w /workspace \
+                        -e VITEST_JUNIT_OUTPUT_FILE=test-results/frontend-results.xml \
+                        ${NODE_IMAGE} sh -c \
+                        'npm ci --prefer-offline && npm run test:ci'
+                """
             }
             post {
                 always {
-                    // Publish JUnit test results
                     junit allowEmptyResults: true,
                           testResults: 'test-results/frontend-results.xml'
-                    // Publish LCOV / Cobertura coverage
                     recordCoverage(
                         tools: [[parser: 'COBERTURA', pattern: 'coverage/cobertura-coverage.xml']],
                         id: 'frontend-coverage',
@@ -124,12 +128,15 @@ pipeline {
             when {
                 anyOf { branch 'main'; buildingTag() }
             }
-            agent {
-                docker { image "${NODE_IMAGE}" }
-            }
+            agent any
             steps {
-                sh 'npm ci --prefer-offline'
-                sh 'npx ng build --configuration=production'
+                sh """
+                    docker run --rm \
+                        -v "\$(pwd)":/workspace \
+                        -w /workspace \
+                        ${NODE_IMAGE} sh -c \
+                        'npm ci --prefer-offline && npx ng build --configuration=production'
+                """
             }
             post {
                 success {
@@ -142,17 +149,11 @@ pipeline {
             when {
                 anyOf { branch 'main'; buildingTag() }
             }
-            agent {
-                docker {
-                    image "${DOCKER_IMAGE}"
-                    args  '--privileged -v /var/run/docker.sock:/var/run/docker.sock'
-                }
-            }
+            agent any
             environment {
                 ACR_SERVER      = credentials('acr-login-server')
                 ACR_CREDENTIALS = credentials('acr-credentials')
-                // Commit-SHA tag — used as the canonical immutable reference.
-                SHA_TAG = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_COMMIT.take(8)}"
+                SHA_TAG         = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_COMMIT.take(8)}"
             }
             steps {
                 sh '''
@@ -162,22 +163,19 @@ pipeline {
                             --password-stdin
                 '''
 
-                // Build with layer cache reuse from the last :latest push.
                 sh """
                     docker build \
                         --cache-from ${ACR_SERVER}/${SERVICE_NAME}:latest \
                         -t ${SHA_TAG} \
-                        frontend/
+                        .
                 """
                 sh "docker push ${SHA_TAG}"
 
                 script {
-                    // main → also tag :latest
                     if (env.BRANCH_NAME == 'main') {
                         sh "docker tag  ${SHA_TAG} ${ACR_SERVER}/${SERVICE_NAME}:latest"
                         sh "docker push ${ACR_SERVER}/${SERVICE_NAME}:latest"
                     }
-                    // tag build → also push the semver tag (e.g. :v1.2.3)
                     if (buildingTag()) {
                         def semver = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_TAG_NAME}"
                         sh "docker tag  ${SHA_TAG} ${semver}"
@@ -198,7 +196,7 @@ pipeline {
                     expression { params.DEPLOY_STAGING == true }
                 }
             }
-            agent { label 'deploy' }
+            agent any
             environment {
                 ACR_SERVER      = credentials('acr-login-server')
                 AZURE_SP        = credentials('azure-sp')
@@ -234,7 +232,7 @@ pipeline {
                     expression { params.DEPLOY_PRODUCTION == true }
                 }
             }
-            agent { label 'deploy' }
+            agent any
             environment {
                 ACR_SERVER      = credentials('acr-login-server')
                 AZURE_SP        = credentials('azure-sp')
