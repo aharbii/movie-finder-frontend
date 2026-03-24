@@ -196,7 +196,7 @@ pipeline {
                 ACR_SERVER      = credentials('acr-login-server')
                 AZURE_SP        = credentials('azure-sp')
                 AZURE_TENANT_ID = credentials('azure-tenant-id')
-                ACA_RG          = credentials('aca-rg')
+                ACA_RG          = credentials('aca-staging-rg')
                 ACA_APP_NAME    = credentials('aca-frontend-staging-name')
                 IMAGE_TAG       = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_COMMIT.take(8)}"
             }
@@ -232,7 +232,7 @@ pipeline {
                 ACR_SERVER      = credentials('acr-login-server')
                 AZURE_SP        = credentials('azure-sp')
                 AZURE_TENANT_ID = credentials('azure-tenant-id')
-                ACA_RG          = credentials('aca-rg')
+                ACA_RG          = credentials('aca-prod-rg')
                 ACA_APP_NAME    = credentials('aca-frontend-name')
                 IMAGE_TAG       = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_TAG_NAME}"
             }
