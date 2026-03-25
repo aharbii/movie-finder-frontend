@@ -1,4 +1,24 @@
 {
-  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=827846
-  "recommendations": ["angular.ng-template"]
+  "recommendations": [
+    // ── Angular ─────────────────────────────────────────────────────────────
+    "angular.ng-template",         // Template syntax, completions, diagnostics
+
+    // ── TypeScript and formatting ────────────────────────────────────────────
+    "esbenp.prettier-vscode",      // Prettier formatter (formatOnSave)
+    "dbaeumer.vscode-eslint",      // ESLint 9 flat config
+
+    // ── Docker and containers ────────────────────────────────────────────────
+    "ms-azuretools.vscode-docker",
+
+    // ── Git and GitHub ───────────────────────────────────────────────────────
+    "eamodio.gitlens",
+    "github.vscode-pull-request-github",
+
+    // ── Testing ─────────────────────────────────────────────────────────────
+    "vitest.explorer",             // Vitest test runner UI
+
+    // ── General ─────────────────────────────────────────────────────────────
+    "streetsidesoftware.code-spell-checker",
+    "redhat.vscode-yaml"
+  ]
 }

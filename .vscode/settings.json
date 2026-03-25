@@ -1,0 +1,46 @@
+{
+  // ── Formatting ────────────────────────────────────────────────────────────
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.eslint": "explicit",
+      "source.organizeImports": "explicit"
+    }
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+
+  // ── ESLint ────────────────────────────────────────────────────────────────
+  "eslint.useFlatConfig": true,
+  "eslint.validate": ["typescript", "html"],
+
+  // ── TypeScript ────────────────────────────────────────────────────────────
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.updateImportsOnFileMove.enabled": "always",
+
+  // ── Editor ────────────────────────────────────────────────────────────────
+  "editor.rulers": [120],
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+
+  // ── File explorer — hide generated artifacts ──────────────────────────────
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.angular": true,
+    "**/coverage": true
+  },
+
+  // ── Test ─────────────────────────────────────────────────────────────────
+  "vitest.enable": true,
+  "vitest.commandLine": "npm run test"
+}
