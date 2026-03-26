@@ -130,11 +130,33 @@ pre-commit run --all-files
 
 ---
 
+## Workflow invariants
+
+- This repo is the gitlink path `frontend` inside `aharbii/movie-finder`. Parent
+  workflow/path filters must use `frontend`, not `frontend/**`.
+- Cross-repo tracker issues originate in `aharbii/movie-finder`. Create the linked child issue in
+  this repo only if this repo will actually change.
+- Inspect `.github/ISSUE_TEMPLATE/*.yml`, `.github/PULL_REQUEST_TEMPLATE.md` when present, and a
+  recent example before creating or editing issues/PRs. Do not improvise titles or bodies.
+- For child issues in this repo, use `.github/ISSUE_TEMPLATE/linked_task.yml` and keep the
+  description, file references, and acceptance criteria repo-specific.
+- If CI, required checks, or merge policy changes affect this repo, update contributor-facing docs
+  here and in `aharbii/movie-finder` where relevant.
+- If a new standalone issue appears mid-session, branch from `main` unless stacking is explicitly
+  requested.
+- PR descriptions must disclose the AI authoring tool + model. Any AI-assisted review comment or
+  approval must also disclose the review tool + model.
+
+---
+
 ## Session start protocol
 
 1. `gh issue list --repo aharbii/movie-finder --state open`
-2. Create issue in `aharbii/movie-finder`, then `aharbii/movie-finder-frontend`
-3. Create branch + work through checklist
+2. Inspect `.github/ISSUE_TEMPLATE/*.yml`, `.github/PULL_REQUEST_TEMPLATE.md` when present, and a
+   recent example of the same type
+3. Create the parent issue in `aharbii/movie-finder`, then the linked child issue in
+   `aharbii/movie-finder-frontend` only if this repo will actually change
+4. Create a branch from `main` and work through the checklist
 
 ---
 
@@ -152,10 +174,12 @@ Conventional Commits: `feat(ui): add SSE reconnect with exponential backoff`
 
 ### 1. GitHub issues
 - [ ] `aharbii/movie-finder` (parent)
-- [ ] `aharbii/movie-finder-frontend` linked
+- [ ] `aharbii/movie-finder-frontend` linked child issue only if this repo changes
+- [ ] Matching issue/PR templates and a recent example were inspected before filing or editing
 
 ### 2. Branch
 - [ ] Branch in this repo + `chore/` in root `movie-finder` to bump pointer
+- [ ] New standalone issues branch from `main` unless stacking is explicitly requested
 
 ### 3. ADR
 - [ ] New framework, state management strategy change, or breaking SSE protocol change?
@@ -181,7 +205,7 @@ Conventional Commits: `feat(ui): add SSE reconnect with exponential backoff`
 - [ ] Root `docker-compose.yml` updated if needed
 
 ### 7. CI — Jenkins
-- [ ] `Jenkinsfile` reviewed
+- [ ] `.github/workflows/*.yml` and/or `Jenkinsfile` reviewed
 
 ### 8. Architecture diagrams (in `docs/` submodule)
 - [ ] **PlantUML** — `06-frontend-architecture.puml` for component changes; `07-seq-authentication.puml` or `08-seq-chat-sse.puml` for flow changes
@@ -193,6 +217,7 @@ Conventional Commits: `feat(ui): add SSE reconnect with exponential backoff`
 - [ ] `docs/` pages (UI guide, SSE integration)
 - [ ] `README.md` updated
 - [ ] `CHANGELOG.md` under `[Unreleased]`
+- [ ] Contributor docs updated when CI, required checks, or merge policy change
 
 ### 10. Sibling submodules affected
 | Submodule | Why |
@@ -209,5 +234,6 @@ git add frontend && git commit -m "chore(frontend): bump to latest main"
 ```
 
 ### 12. Pull request
-- [ ] PR in `aharbii/movie-finder-frontend`
+- [ ] PR in `aharbii/movie-finder-frontend` discloses the AI authoring tool + model
 - [ ] PR in `aharbii/movie-finder` (pointer bump)
+- [ ] Any AI-assisted review comment or approval discloses the review tool + model
