@@ -172,52 +172,19 @@ Conventional Commits: `feat(ui): add SSE reconnect with exponential backoff`
 
 ## Cross-cutting change checklist
 
-### 1. GitHub issues
-- [ ] `aharbii/movie-finder` (parent)
-- [ ] `aharbii/movie-finder-frontend` linked child issue only if this repo changes
-- [ ] Matching issue/PR templates and a recent example were inspected before filing or editing
+Full detail in `ai-context/issue-agent-briefing-template.md`.
 
-### 2. Branch
-- [ ] Branch in this repo + `chore/` in root `movie-finder` to bump pointer
-- [ ] New standalone issues branch from `main` unless stacking is explicitly requested
-
-### 3. ADR
-- [ ] New framework, state management strategy change, or breaking SSE protocol change?
-  → `docs/architecture/decisions/ADR-NNN-title.md`
-
-### 4. Implementation and tests
-- [ ] Smart/Dumb component boundary respected
-- [ ] No `HttpClient` or `EventSource` directly in components — go through a service
-- [ ] TypeScript strict — no `any`, no suppressed errors
-- [ ] `npm run lint` (ESLint) + `npm run format` (Prettier) pass
-- [ ] Vitest tests pass: `npm test`
-- [ ] Dev proxy (`proxy.conf.js`) still routes correctly for local testing
-
-### 5. Environment and secrets
-- [ ] `nginx.conf.template` updated if new routes or proxy rules
-- [ ] `docker-entrypoint.sh` updated if new runtime env vars injected
-- [ ] `.env.example` (if present) and root `movie-finder` `.env.example` updated
-- [ ] New config/secrets flagged for Azure Key Vault and Jenkins
-
-### 6. Docker
-- [ ] `Dockerfile` updated (new build args, nginx config, env vars)
-- [ ] `docker-compose.yml` updated if port or env changed
-- [ ] Root `docker-compose.yml` updated if needed
-
-### 7. CI — Jenkins
-- [ ] `.github/workflows/*.yml` and/or `Jenkinsfile` reviewed
-
-### 8. Architecture diagrams (in `docs/` submodule)
-- [ ] **PlantUML** — `06-frontend-architecture.puml` for component changes; `07-seq-authentication.puml` or `08-seq-chat-sse.puml` for flow changes
-  **Never generate `.mdj`**
-- [ ] **Structurizr C4** — `workspace.dsl` if frontend containers or relations changed
-- [ ] Commit to `aharbii/movie-finder-docs` first
-
-### 9. Documentation
-- [ ] `docs/` pages (UI guide, SSE integration)
-- [ ] `README.md` updated
-- [ ] `CHANGELOG.md` under `[Unreleased]`
-- [ ] Contributor docs updated when CI, required checks, or merge policy change
+| # | Category | Key gate |
+|---|---|---|
+| 1 | **Issues** | Parent `aharbii/movie-finder` + child here only if this repo changes; templates inspected |
+| 2 | **Branch** | `feature/fix/chore/docs` in this repo + pointer-bump `chore/` in root `movie-finder` |
+| 3 | **ADR** | New framework, state management strategy change, or breaking SSE protocol change → ADR in `docs/` |
+| 4 | **Implementation** | Smart/Dumb boundary respected; no direct `HttpClient`/`EventSource` in components; TypeScript strict; `npm run lint` + `npm run format` pass; `npm test` passes; proxy still routes correctly |
+| 5 | **Env & secrets** | `nginx.conf.template` + `docker-entrypoint.sh` updated for new routes/env; `.env.example` updated; new secrets → Key Vault + Jenkins |
+| 6 | **Docker** | `Dockerfile` + `docker-compose.yml` updated for new build args/env/ports |
+| 7 | **CI** | `Jenkinsfile` / `.github/workflows/` reviewed |
+| 8 | **Diagrams** | `06-frontend-architecture.puml`; `07-seq-authentication.puml` or `08-seq-chat-sse.puml` for flow changes; `workspace.dsl` if C4 changed; commit to `docs/` first; **never `.mdj`** |
+| 8a | **Docs** | `docs/` pages (UI guide, SSE integration); `README.md` + `CHANGELOG.md` updated |
 
 ### 10. Sibling submodules affected
 | Submodule | Why |
