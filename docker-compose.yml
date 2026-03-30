@@ -1,0 +1,33 @@
+# =============================================================================
+# movie-finder-frontend — Docker-only development service
+#
+# This compose file provides the `dev` container used by the Makefile for all
+# quality commands (lint, format, typecheck, test). It is NOT used to serve
+# the compiled Angular app — that is handled by the root docker-compose.yml.
+#
+# Usage (via Makefile targets):
+#   make init        # npm ci — install node_modules into the mounted workspace
+#   make editor-up   # start long-running container for fast exec-based checks
+#   make lint        # npm run lint (exec if running, run --rm otherwise)
+#   make check       # typecheck + lint + format:check + test
+# =============================================================================
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # dev — Node.js development container
+  #
+  # Mounts the frontend workspace so that node_modules, src/, and config files
+  # are all available inside the container. Quality commands (ESLint, Prettier,
+  # TypeScript, Vitest) run here — no Node.js required on the host.
+  # ---------------------------------------------------------------------------
+  dev:
+    image: node:22-alpine
+    container_name: movie-finder-frontend-dev
+    working_dir: /workspace
+    volumes:
+      - .:/workspace
+    # Run npm install once so the global npm matches the declared packageManager.
+    # Then keep the container alive so exec-based quality commands are instant.
+    command: >
+      sh -c "npm install -g npm@11.8.0 --prefer-offline 2>/dev/null; sleep infinity"

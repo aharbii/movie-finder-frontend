@@ -15,6 +15,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,html,scss}\""
   },
   "private": true,
+  "license": "MIT",
   "packageManager": "npm@11.8.0",
   "dependencies": {
     "@angular/common": "^21.2.0",
