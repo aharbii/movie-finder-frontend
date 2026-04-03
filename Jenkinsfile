@@ -128,6 +128,19 @@ pipeline {
                 always {
                     junit allowEmptyResults: true,
                           testResults: 'frontend/test-results/frontend-results.xml'
+                    recordCoverage(
+                        tools: [
+                            [parser: 'COBERTURA', pattern: 'frontend/coverage/cobertura-coverage.xml']
+                        ],
+                        id: 'coverage',
+                        name: 'Frontend Coverage',
+                        sourceCodeRetention: 'EVERY_BUILD',
+                        failOnError: false,
+                        qualityGates: [
+                            [threshold: 10.0, metric: 'LINE', baseline: 'PROJECT', unstable: true],
+                            [threshold: 10.0, metric: 'BRANCH', baseline: 'PROJECT', unstable: true]
+                        ]
+                    )
                 }
             }
         }
