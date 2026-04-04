@@ -42,6 +42,7 @@ git checkout -b [type]/[kebab-case-title]
 ## Step 5 — Implement
 
 Frontend-specific patterns:
+
 - Angular 21, TypeScript 5.9, standalone components — no NgModules ever
 - Smart / Dumb components: smart components own services and state; dumb components take `@Input()` only
 - Facade service pattern: services wrap HttpClient and return typed observables/signals; components never call HttpClient directly
@@ -50,6 +51,7 @@ Frontend-specific patterns:
 - Immutability: prefer `readonly` and `const` everywhere
 
 General TypeScript standards:
+
 - Strict mode on: `noImplicitAny`, `strictNullChecks`
 - No `any` — use `unknown` + type narrowing
 - No `console.log()` in production code

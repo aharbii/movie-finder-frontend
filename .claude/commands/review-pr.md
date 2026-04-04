@@ -20,6 +20,7 @@ gh pr diff $ARGUMENTS --repo aharbii/movie-finder-frontend
 ## Blocking findings
 
 **Angular-specific patterns:**
+
 - NgModule introduced (standalone components only)
 - `any` used (must use `unknown` + type narrowing)
 - Smart/Dumb boundary violated (dumb component injecting a service)

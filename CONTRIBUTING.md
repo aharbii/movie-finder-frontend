@@ -23,28 +23,30 @@ For cross-cutting conventions (branching, commits, PRs, releases, submodule work
 
 ### Prerequisites
 
-| Tool | Version |
-|------|---------|
-| Node.js | 20+ |
-| npm | 11+ (bundled with Node 20) |
+| Tool           | Version | Install                                                      |
+| -------------- | ------- | ------------------------------------------------------------ |
+| Docker Desktop | Latest  | [docker.com](https://www.docker.com/products/docker-desktop) |
+| Make           | 3.81+   | Standard on macOS/Linux                                      |
 
 ### First-time setup
 
 ```bash
 cd frontend/
-npm ci                # install pinned dependencies
-npm start             # http://localhost:4200 with hot-reload
+make init        # pull image, npm ci, install git pre-commit hook
+make editor-up   # start dev container  →  http://localhost:4200
 ```
 
 The dev server proxies `/auth`, `/chat`, and `/health` to `http://localhost:8000`. The backend must be running.
 
 Start the backend (in a separate terminal):
+
 ```bash
 cd backend/
-make db-start && make run-dev
+make up
 ```
 
 Or use the full Docker stack from the root:
+
 ```bash
 docker compose up postgres backend
 ```
@@ -116,6 +118,7 @@ npm run lint:fix      # auto-fix safe violations
 ```
 
 Rules in `eslint.config.js`:
+
 - `typescript-eslint` recommended + stylistic
 - `@angular-eslint` component and directive conventions
 - `@angular-eslint/template` HTML template rules
@@ -139,14 +142,14 @@ Run this before opening a PR. CI will fail if there are type errors.
 
 ### Angular conventions
 
-| Convention | Rule |
-|------------|------|
-| Component selectors | `app-` prefix, kebab-case |
-| File names | `<name>.component.ts`, `<name>.service.ts`, `<name>.guard.ts` |
+| Convention             | Rule                                                                       |
+| ---------------------- | -------------------------------------------------------------------------- |
+| Component selectors    | `app-` prefix, kebab-case                                                  |
+| File names             | `<name>.component.ts`, `<name>.service.ts`, `<name>.guard.ts`              |
 | Signals vs Observables | Prefer Angular signals for local state; RxJS Observables for SSE streaming |
-| Template bindings | Use `@if`, `@for` control flow (Angular 17+ block syntax) |
-| Component styles | SCSS, scoped to the component (no global styles except `styles.scss`) |
-| Dependency injection | Use `inject()` function — not constructor injection |
+| Template bindings      | Use `@if`, `@for` control flow (Angular 17+ block syntax)                  |
+| Component styles       | SCSS, scoped to the component (no global styles except `styles.scss`)      |
+| Dependency injection   | Use `inject()` function — not constructor injection                        |
 
 ---
 
@@ -160,6 +163,7 @@ npm run test:ci       # single run with coverage (CI)
 ```
 
 Coverage reports written to `coverage/`:
+
 - `coverage/lcov.info` — LCOV format (local tools, VS Code coverage extension)
 - `coverage/cobertura-coverage.xml` — Cobertura XML (Jenkins Coverage plugin)
 
@@ -187,10 +191,7 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        AuthService,
-        { provide: HttpClient, useValue: mockHttp }
-      ]
+      providers: [AuthService, { provide: HttpClient, useValue: mockHttp }],
     });
     service = TestBed.inject(AuthService);
   });
@@ -228,10 +229,10 @@ describe('AuthService', () => {
 
 The frontend communicates with the FastAPI backend via:
 
-| Mechanism | Used for |
-|-----------|---------|
-| REST (JSON) | Auth endpoints (`/auth/*`), session management (`/chat/sessions`, `/chat/{id}/history`, `DELETE /chat/{id}`) |
-| SSE (Server-Sent Events) | Chat streaming (`POST /chat`) |
+| Mechanism                | Used for                                                                                                     |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| REST (JSON)              | Auth endpoints (`/auth/*`), session management (`/chat/sessions`, `/chat/{id}/history`, `DELETE /chat/{id}`) |
+| SSE (Server-Sent Events) | Chat streaming (`POST /chat`)                                                                                |
 
 ### SSE implementation note
 
@@ -243,9 +244,9 @@ const response = await fetch('/api/chat', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
+    Authorization: `Bearer ${token}`,
   },
-  body: JSON.stringify({ session_id, message })
+  body: JSON.stringify({ session_id, message }),
 });
 
 const reader = response.body!.getReader();
@@ -274,9 +275,9 @@ The Q&A phase does **not** emit token events — the full reply arrives only in 
 
 ### Environment configuration
 
-| File | Use |
-|------|-----|
-| `environments/environment.ts` | Development — `apiUrl: 'http://localhost:8000'` |
+| File                               | Use                                                                          |
+| ---------------------------------- | ---------------------------------------------------------------------------- |
+| `environments/environment.ts`      | Development — `apiUrl: 'http://localhost:8000'`                              |
 | `environments/environment.prod.ts` | Production — reads `window.__env.API_URL` injected by `docker-entrypoint.sh` |
 
 ---
@@ -285,20 +286,21 @@ The Q&A phase does **not** emit token events — the full reply arrives only in 
 
 The `Dockerfile` uses three stages:
 
-| Stage | Base | What happens |
-|-------|------|-------------|
-| `deps` | `node:20-alpine` | `npm ci` (mount cache) |
-| `builder` | `node:20-alpine` | `ng build --configuration=production` |
-| `runner` | `nginx:stable-alpine` | Serve the Angular bundle; proxy `/api` to backend |
+| Stage     | Base                  | What happens                                      |
+| --------- | --------------------- | ------------------------------------------------- |
+| `deps`    | `node:20-alpine`      | `npm ci` (mount cache)                            |
+| `builder` | `node:20-alpine`      | `ng build --configuration=production`             |
+| `runner`  | `nginx:stable-alpine` | Serve the Angular bundle; proxy `/api` to backend |
 
 Runtime environment variables injected at container start by `docker-entrypoint.sh`:
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `API_URL` | `""` (empty) | Passed to `window.__env.API_URL` in the Angular app |
-| `BACKEND_URL` | `http://backend:8000` | nginx upstream target for `/api` proxy |
+| Variable      | Default               | Purpose                                             |
+| ------------- | --------------------- | --------------------------------------------------- |
+| `API_URL`     | `""` (empty)          | Passed to `window.__env.API_URL` in the Angular app |
+| `BACKEND_URL` | `http://backend:8000` | nginx upstream target for `/api` proxy              |
 
 Build locally:
+
 ```bash
 docker build -t movie-finder-frontend:local .
 docker run -p 80:80 \
@@ -313,20 +315,20 @@ docker run -p 80:80 \
 
 The `Jenkinsfile` runs three modes based on Git context:
 
-| Mode | Trigger | Stages |
-|------|---------|--------|
-| CONTRIBUTION | Feature branch / PR | Type-check → Lint → Test |
-| INTEGRATION | Push to `main` | + Build Docker image → Push `:sha8` + `:latest` to ACR → (opt) Staging deploy |
-| RELEASE | `v*` tag | + Push `:v1.2.3` to ACR → (opt) Production deploy |
+| Mode         | Trigger             | Stages                                                                        |
+| ------------ | ------------------- | ----------------------------------------------------------------------------- |
+| CONTRIBUTION | Feature branch / PR | Type-check → Lint → Test                                                      |
+| INTEGRATION  | Push to `main`      | + Build Docker image → Push `:sha8` + `:latest` to ACR → (opt) Staging deploy |
+| RELEASE      | `v*` tag            | + Push `:v1.2.3` to ACR → (opt) Production deploy                             |
 
 CONTRIBUTION builds must be green before any PR can be merged. No images are built or pushed in CONTRIBUTION mode.
 
 **Jenkins credentials required (frontend pipeline):**
 
-| ID | Kind | Purpose |
-|----|------|---------|
-| `acr-login-server` | Secret text | ACR hostname |
-| `acr-credentials` | Username+Password | `docker login` to ACR |
-| `azure-sp` | Username+Password | `az login` for Container App updates |
+| ID                 | Kind              | Purpose                              |
+| ------------------ | ----------------- | ------------------------------------ |
+| `acr-login-server` | Secret text       | ACR hostname                         |
+| `acr-credentials`  | Username+Password | `docker login` to ACR                |
+| `azure-sp`         | Username+Password | `az login` for Container App updates |
 
-See [`docs/devops-setup.md §9`](../docs/devops-setup.md#9-jenkins--credentials) for setup instructions.
+See [`docs/devops/setup.md §9`](../docs/devops/setup.md#9-jenkins--credentials) for setup instructions.

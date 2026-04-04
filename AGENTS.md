@@ -5,13 +5,16 @@ Foundational mandate for `movie-finder-frontend` (`frontend/`).
 ---
 
 ## What this submodule does
+
 Angular 21 SPA — user interface for Movie Finder.
+
 - **Streaming:** candidate movies via SSE (`EventSource`)
 - **Serving:** nginx + runtime env injection via `docker-entrypoint.sh`
 
 ---
 
 ## Technology stack
+
 - Angular 21, TypeScript 5.9
 - **Signals** for reactive state
 - **Vitest** for testing
@@ -20,6 +23,7 @@ Angular 21 SPA — user interface for Movie Finder.
 ---
 
 ## Design patterns
+
 - **Smart / Dumb components:** Smart components own services; dumb components take `@Input()` only.
 - **Facade service:** Services wrap `HttpClient` and `EventSource`.
 - **Signal-based state:** Avoid `BehaviorSubject` for local state.
@@ -28,6 +32,7 @@ Angular 21 SPA — user interface for Movie Finder.
 ---
 
 ## Coding standards
+
 - TypeScript **strict mode** on.
 - No `any` — use `unknown` or proper interfaces.
 - **Standalone components** only.
@@ -37,6 +42,7 @@ Angular 21 SPA — user interface for Movie Finder.
 ---
 
 ## Common tasks
+
 - `npm ci`
 - `npm start`
 - `npm test`
@@ -66,6 +72,7 @@ Angular 21 SPA — user interface for Movie Finder.
 ## VSCode setup
 
 `frontend/.vscode/` — full workspace configuration for the Angular SPA.
+
 - `settings.json`: Prettier format-on-save, ESLint 9 flat config, Vitest, TypeScript strict, ruler 120
 - `extensions.json`: `angular.ng-template`, `esbenp.prettier-vscode`, `dbaeumer.vscode-eslint`, `vitest.explorer`, GitLens, Docker
 - `launch.json`: Chrome debugger for `ng serve` (localhost:4200)

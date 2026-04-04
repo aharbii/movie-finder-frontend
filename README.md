@@ -8,10 +8,10 @@ This project uses a **Docker-only developer contract**. All quality commands (li
 
 ### Prerequisites
 
-| Tool | Version | Notes |
-|------|---------|-------|
-| Docker Desktop | Latest | [docker.com](https://www.docker.com/products/docker-desktop) |
-| Make | 3.81+ | Standard on macOS/Linux |
+| Tool           | Version | Notes                                                        |
+| -------------- | ------- | ------------------------------------------------------------ |
+| Docker Desktop | Latest  | [docker.com](https://www.docker.com/products/docker-desktop) |
+| Make           | 3.81+   | Standard on macOS/Linux                                      |
 
 ### Quick Start
 
@@ -37,21 +37,21 @@ make shell
 
 The `Makefile` is the primary entry point for all development tasks.
 
-| Target | Description |
-|--------|-------------|
-| `make init` | Pull Node image, run `npm ci`, and install the git pre-commit hook. |
-| `make editor-up` | Start the `dev` container in the background for fast command execution. |
-| `make editor-down` | Stop and remove the `dev` container. |
-| `make shell` | Open an interactive shell inside the `dev` container. |
-| `make lint` | Run ESLint (report only). |
-| `make format` | Run Prettier (apply changes). |
-| `make fix` | Run `ng lint --fix` + Prettier (apply all auto-fixes). |
-| `make typecheck` | Run `tsc --noEmit`. |
-| `make test` | Run Vitest in CI mode. |
-| `make test-coverage` | Run Vitest with coverage and JUnit XML output for Jenkins. |
-| `make check` | Run `typecheck`, `lint`, and `test-coverage` in sequence. |
-| `make build` | Production Angular build (generates `dist/`). |
-| `make ci-down` | Full cleanup: stop container and remove local images/volumes. |
+| Target               | Description                                                             |
+| -------------------- | ----------------------------------------------------------------------- |
+| `make init`          | Pull Node image, run `npm ci`, and install the git pre-commit hook.     |
+| `make editor-up`     | Start the `dev` container in the background for fast command execution. |
+| `make editor-down`   | Stop and remove the `dev` container.                                    |
+| `make shell`         | Open an interactive shell inside the `dev` container.                   |
+| `make lint`          | Run ESLint (report only).                                               |
+| `make format`        | Run Prettier (apply changes).                                           |
+| `make fix`           | Run `ng lint --fix` + Prettier (apply all auto-fixes).                  |
+| `make typecheck`     | Run `tsc --noEmit`.                                                     |
+| `make test`          | Run Vitest in CI mode.                                                  |
+| `make test-coverage` | Run Vitest with coverage and JUnit XML output for Jenkins.              |
+| `make check`         | Run `typecheck`, `lint`, and `test-coverage` in sequence.               |
+| `make build`         | Production Angular build (generates `dist/`).                           |
+| `make ci-down`       | Full cleanup: stop container and remove local images/volumes.           |
 
 ---
 
@@ -60,6 +60,7 @@ The `Makefile` is the primary entry point for all development tasks.
 ### 1. VS Code Integration
 
 This repo includes a pre-configured `.vscode/` directory. For the best experience:
+
 1. Run `make editor-up`.
 2. Attach VS Code to the running `movie-finder-frontend-dev` container using the **Dev Containers** extension.
 3. The interpreter and all tools will be correctly mapped to the container's environment.
@@ -71,6 +72,7 @@ This repo includes a pre-configured `.vscode/` directory. For the best experienc
 ### 3. Tests + Coverage
 
 Tests use [Vitest](https://vitest.dev/). When running `make test-coverage`, results are written to:
+
 - `test-results/frontend-results.xml` (JUnit)
 - `coverage/cobertura-coverage.xml` (Cobertura)
 
@@ -112,14 +114,15 @@ Stage 3 (runner)  — nginx:stable-alpine + Angular bundle
 
 Runtime environment variables are injected via [docker-entrypoint.sh](docker-entrypoint.sh):
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
-| `API_URL` | `` (empty) | Injected into `window.__env.API_URL` |
-| `BACKEND_URL` | `http://backend:8000` | nginx upstream proxy for `/api` |
+| Variable      | Default               | Purpose                              |
+| ------------- | --------------------- | ------------------------------------ |
+| `API_URL`     | `` (empty)            | Injected into `window.__env.API_URL` |
+| `BACKEND_URL` | `http://backend:8000` | nginx upstream proxy for `/api`      |
 
 ## CI/CD (Jenkins)
 
 The [Jenkinsfile](Jenkinsfile) follows the project-wide pipeline standards:
+
 1. **Checkout**: Standard git checkout.
 2. **Initialize**: Runs `make init`.
 3. **Lint + Typecheck**: Runs `make lint` and `make typecheck` in parallel.

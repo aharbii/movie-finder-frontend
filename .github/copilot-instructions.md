@@ -9,15 +9,15 @@ Parent project: `aharbii/movie-finder` — all issues created there first, then 
 
 ## Tech stack
 
-| Layer | Stack |
-|---|---|
-| Framework | Angular 21, TypeScript 5.9 |
-| State | Angular Signals (no BehaviorSubject for component state) |
-| HTTP | `HttpClient` via facade services — components never call it directly |
-| Streaming | `EventSource` (SSE) for chat responses |
-| Tests | Vitest + Angular TestBed, `@vitest/coverage-v8` |
+| Layer       | Stack                                                                 |
+| ----------- | --------------------------------------------------------------------- |
+| Framework   | Angular 21, TypeScript 5.9                                            |
+| State       | Angular Signals (no BehaviorSubject for component state)              |
+| HTTP        | `HttpClient` via facade services — components never call it directly  |
+| Streaming   | `EventSource` (SSE) for chat responses                                |
+| Tests       | Vitest + Angular TestBed, `@vitest/coverage-v8`                       |
 | Lint/Format | ESLint 9 flat config (`eslint.config.js`), Prettier 3 (`.prettierrc`) |
-| Build | Angular CLI, `ng build` → nginx static serving |
+| Build       | Angular CLI, `ng build` → nginx static serving                        |
 
 ---
 
@@ -33,11 +33,11 @@ Parent project: `aharbii/movie-finder` — all issues created there first, then 
 
 ## Design patterns — follow these
 
-| Pattern | Rule |
-|---|---|
-| **Smart / Dumb components** | Smart components own services and state. Dumb components take `@Input()` only. |
-| **Facade service** | Services wrap `HttpClient` and return typed signals/observables. Components never call `HttpClient` directly. |
-| **Signal-based state** | Use Angular Signals for all reactive state. Avoid `BehaviorSubject`. |
+| Pattern                     | Rule                                                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Smart / Dumb components** | Smart components own services and state. Dumb components take `@Input()` only.                                |
+| **Facade service**          | Services wrap `HttpClient` and return typed signals/observables. Components never call `HttpClient` directly. |
+| **Signal-based state**      | Use Angular Signals for all reactive state. Avoid `BehaviorSubject`.                                          |
 
 ---
 

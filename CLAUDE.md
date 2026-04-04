@@ -35,45 +35,45 @@ Jenkinsfile            CI/CD pipeline
 
 ### Submodule map
 
-| Path | GitHub repo | Role |
-|---|---|---|
-| `.` (root) | `aharbii/movie-finder` | Parent — all cross-repo issues |
-| `backend/` | `aharbii/movie-finder-backend` | FastAPI + uv workspace root |
-| `backend/app/` | (nested in backend) | FastAPI application layer |
-| `backend/chain/` | `aharbii/movie-finder-chain` | LangGraph AI pipeline |
-| `backend/chain/imdbapi/` | `aharbii/imdbapi-client` | Async IMDb REST client |
-| `backend/rag_ingestion/` | `aharbii/movie-finder-rag` | Offline embedding ingestion |
-| `frontend/` | `aharbii/movie-finder-frontend` | **← you are here** |
-| `docs/` | `aharbii/movie-finder-docs` | MkDocs documentation |
-| `infrastructure/` | `aharbii/movie-finder-infrastructure` | IaC / Azure provisioning |
+| Path                     | GitHub repo                           | Role                           |
+| ------------------------ | ------------------------------------- | ------------------------------ |
+| `.` (root)               | `aharbii/movie-finder`                | Parent — all cross-repo issues |
+| `backend/`               | `aharbii/movie-finder-backend`        | FastAPI + uv workspace root    |
+| `backend/app/`           | (nested in backend)                   | FastAPI application layer      |
+| `backend/chain/`         | `aharbii/movie-finder-chain`          | LangGraph AI pipeline          |
+| `backend/chain/imdbapi/` | `aharbii/imdbapi-client`              | Async IMDb REST client         |
+| `backend/rag_ingestion/` | `aharbii/movie-finder-rag`            | Offline embedding ingestion    |
+| `frontend/`              | `aharbii/movie-finder-frontend`       | **← you are here**             |
+| `docs/`                  | `aharbii/movie-finder-docs`           | MkDocs documentation           |
+| `infrastructure/`        | `aharbii/movie-finder-infrastructure` | IaC / Azure provisioning       |
 
 ### Technology stack
 
-| Layer | Stack |
-|---|---|
-| Framework | Angular 21, TypeScript 5.9 |
-| Components | Standalone (no NgModules) |
-| Reactive state | Angular Signals |
-| Streaming | `EventSource` (SSE) |
-| HTTP | Angular `HttpClient` (wrapped in facade services) |
-| Serving | nginx (production) |
-| Package manager | `npm` |
-| Linting | ESLint 9 flat config |
-| Formatting | Prettier |
-| Tests | Vitest |
-| CI | Jenkins Multibranch → Azure Container Registry → Azure Container Apps |
+| Layer           | Stack                                                                 |
+| --------------- | --------------------------------------------------------------------- |
+| Framework       | Angular 21, TypeScript 5.9                                            |
+| Components      | Standalone (no NgModules)                                             |
+| Reactive state  | Angular Signals                                                       |
+| Streaming       | `EventSource` (SSE)                                                   |
+| HTTP            | Angular `HttpClient` (wrapped in facade services)                     |
+| Serving         | nginx (production)                                                    |
+| Package manager | `npm`                                                                 |
+| Linting         | ESLint 9 flat config                                                  |
+| Formatting      | Prettier                                                              |
+| Tests           | Vitest                                                                |
+| CI              | Jenkins Multibranch → Azure Container Registry → Azure Container Apps |
 
 ---
 
 ## Design patterns to follow
 
-| Pattern | Where | Rule |
-|---|---|---|
-| **Smart / Dumb components** | All Angular components | Smart components own services and state; dumb (presentational) components receive `@Input()` only and emit `@Output()`. No service injection in dumb components. |
-| **Facade service** | HTTP / SSE layer | Services wrap `HttpClient` and `EventSource`, returning typed observables or signals. Components never call `HttpClient` or `EventSource` directly. |
-| **Signal-based state** | Reactive state | Use Angular Signals for component-local and shared state. Avoid `BehaviorSubject` for component-local state. |
-| **Immutability** | State updates | State objects are not mutated — compute new values and reassign signals. |
-| **Runtime config injection** | Docker / nginx | Environment-specific config (API URL, feature flags) is injected at container start via `docker-entrypoint.sh`, not baked into the build. |
+| Pattern                      | Where                  | Rule                                                                                                                                                             |
+| ---------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Smart / Dumb components**  | All Angular components | Smart components own services and state; dumb (presentational) components receive `@Input()` only and emit `@Output()`. No service injection in dumb components. |
+| **Facade service**           | HTTP / SSE layer       | Services wrap `HttpClient` and `EventSource`, returning typed observables or signals. Components never call `HttpClient` or `EventSource` directly.              |
+| **Signal-based state**       | Reactive state         | Use Angular Signals for component-local and shared state. Avoid `BehaviorSubject` for component-local state.                                                     |
+| **Immutability**             | State updates          | State objects are not mutated — compute new values and reassign signals.                                                                                         |
+| **Runtime config injection** | Docker / nginx         | Environment-specific config (API URL, feature flags) is injected at container start via `docker-entrypoint.sh`, not baked into the build.                        |
 
 ---
 
@@ -94,6 +94,7 @@ Jenkinsfile            CI/CD pipeline
 ## VSCode setup
 
 `frontend/.vscode/` is committed with a full workspace configuration:
+
 - `settings.json` — Prettier format-on-save, ESLint 9, Vitest, TypeScript strict
 - `extensions.json` — `angular.ng-template`, `esbenp.prettier-vscode`, `dbaeumer.vscode-eslint`, GitLens, Docker
 - `launch.json` — Chrome debugger for `ng serve` (localhost:4200) and `ng test`
@@ -119,12 +120,12 @@ pre-commit install
 pre-commit run --all-files
 ```
 
-| Hook | What it checks |
-|---|---|
-| `trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-merge-conflict` | File health |
-| `detect-private-key`, `detect-secrets` | Secrets (excludes `package-lock.json`) |
-| `eslint-frontend` | TS + HTML via `node_modules/.bin/eslint --max-warnings=0` |
-| `prettier-frontend` | Format check via `node_modules/.bin/prettier --check` |
+| Hook                                                                             | What it checks                                            |
+| -------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| `trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-merge-conflict` | File health                                               |
+| `detect-private-key`, `detect-secrets`                                           | Secrets (excludes `package-lock.json`)                    |
+| `eslint-frontend`                                                                | TS + HTML via `node_modules/.bin/eslint --max-warnings=0` |
+| `prettier-frontend`                                                              | Format check via `node_modules/.bin/prettier --check`     |
 
 **Never `--no-verify`.** False-positive secret → `# pragma: allowlist secret` + update `.secrets.baseline`.
 
@@ -174,33 +175,36 @@ Conventional Commits: `feat(ui): add SSE reconnect with exponential backoff`
 
 Full detail in `ai-context/issue-agent-briefing-template.md`.
 
-| # | Category | Key gate |
-|---|---|---|
-| 1 | **Issues** | Parent `aharbii/movie-finder` + child here only if this repo changes; templates inspected |
-| 2 | **Branch** | `feature/fix/chore/docs` in this repo + pointer-bump `chore/` in root `movie-finder` |
-| 3 | **ADR** | New framework, state management strategy change, or breaking SSE protocol change → ADR in `docs/` |
-| 4 | **Implementation** | Smart/Dumb boundary respected; no direct `HttpClient`/`EventSource` in components; TypeScript strict; `npm run lint` + `npm run format` pass; `npm test` passes; proxy still routes correctly |
-| 5 | **Env & secrets** | `nginx.conf.template` + `docker-entrypoint.sh` updated for new routes/env; `.env.example` updated; new secrets → Key Vault + Jenkins |
-| 6 | **Docker** | `Dockerfile` + `docker-compose.yml` updated for new build args/env/ports |
-| 7 | **CI** | `Jenkinsfile` / `.github/workflows/` reviewed |
-| 8 | **Diagrams** | `06-frontend-architecture.puml`; `07-seq-authentication.puml` or `08-seq-chat-sse.puml` for flow changes; `workspace.dsl` if C4 changed; commit to `docs/` first; **never `.mdj`** |
-| 8a | **Docs** | `docs/` pages (UI guide, SSE integration); `README.md` + `CHANGELOG.md` updated |
+| #   | Category           | Key gate                                                                                                                                                                                      |
+| --- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Issues**         | Parent `aharbii/movie-finder` + child here only if this repo changes; templates inspected                                                                                                     |
+| 2   | **Branch**         | `feature/fix/chore/docs` in this repo + pointer-bump `chore/` in root `movie-finder`                                                                                                          |
+| 3   | **ADR**            | New framework, state management strategy change, or breaking SSE protocol change → ADR in `docs/`                                                                                             |
+| 4   | **Implementation** | Smart/Dumb boundary respected; no direct `HttpClient`/`EventSource` in components; TypeScript strict; `npm run lint` + `npm run format` pass; `npm test` passes; proxy still routes correctly |
+| 5   | **Env & secrets**  | `nginx.conf.template` + `docker-entrypoint.sh` updated for new routes/env; `.env.example` updated; new secrets → Key Vault + Jenkins                                                          |
+| 6   | **Docker**         | `Dockerfile` + `docker-compose.yml` updated for new build args/env/ports                                                                                                                      |
+| 7   | **CI**             | `Jenkinsfile` / `.github/workflows/` reviewed                                                                                                                                                 |
+| 8   | **Diagrams**       | `06-frontend-architecture.puml`; `07-seq-authentication.puml` or `08-seq-chat-sse.puml` for flow changes; `workspace.dsl` if C4 changed; commit to `docs/` first; **never `.mdj`**            |
+| 8a  | **Docs**           | `docs/` pages (UI guide, SSE integration); `README.md` + `CHANGELOG.md` updated                                                                                                               |
 
 ### 10. Sibling submodules affected
-| Submodule | Why |
-|---|---|
-| `backend/app/` | API contract — new endpoints, changed SSE event fields, auth flow changes |
-| `backend/chain/` | SSE event shape originates here |
-| `infrastructure/` | New Azure Container App config, env vars |
-| `docs/` | UI screenshots, user guide, architecture |
+
+| Submodule         | Why                                                                       |
+| ----------------- | ------------------------------------------------------------------------- |
+| `backend/app/`    | API contract — new endpoints, changed SSE event fields, auth flow changes |
+| `backend/chain/`  | SSE event shape originates here                                           |
+| `infrastructure/` | New Azure Container App config, env vars                                  |
+| `docs/`           | UI screenshots, user guide, architecture                                  |
 
 ### 11. Submodule pointer bump
+
 ```bash
 # in root movie-finder
 git add frontend && git commit -m "chore(frontend): bump to latest main"
 ```
 
 ### 12. Pull request
+
 - [ ] PR in `aharbii/movie-finder-frontend` discloses the AI authoring tool + model
 - [ ] PR in `aharbii/movie-finder` (pointer bump)
 - [ ] Any AI-assisted review comment or approval discloses the review tool + model
