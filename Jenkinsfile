@@ -1,13 +1,13 @@
 // =============================================================================
-// movie-finder-frontend — Jenkins declarative pipeline
+// movie-finder-frontend — Jenkins declarative pipeline (Standalone)
 //
 // Stages:
-//   1. Checkout
-//   2. Lint + Typecheck — frontend app
-//   3. Test — frontend app (Vitest with coverage)
-//   4. Build App Image
-//   5. Deploy to Staging
-//   6. Deploy to Production
+//   1. Initialize — Build dev image
+//   2. Quality — Lint + Typecheck (Parallel)
+//   3. Test — Vitest with coverage
+//   4. Build App Image — Push to ACR
+//   5. Deploy to Staging — Azure Container App
+//   6. Deploy to Production — Azure Container App (Manual Approval)
 //
 // Required Jenkins credentials (see docs/devops/setup.md):
 //   acr-login-server          Secret text        — ACR hostname
@@ -25,7 +25,7 @@
 // =============================================================================
 
 pipeline {
-    agent none
+    agent any
 
     options {
         buildDiscarder(logRotator(numToKeepStr: '30'))
@@ -43,46 +43,30 @@ pipeline {
 
     environment {
         SERVICE_NAME = 'movie-finder-frontend'
+        // Isolate compose project per build so parallel CI runs don't collide.
+        COMPOSE_PROJECT_NAME = "movie-finder-frontend-ci-${env.BUILD_NUMBER}"
     }
 
     stages {
 
         // ------------------------------------------------------------------ //
-        stage('Checkout') {
-            agent any
+        stage('Initialize') {
             steps {
-                checkout scm
-                // Stash the complete workspace so later stages can run on any
-                // executor with the full repo checkout.
-                stash name: 'source', excludes: '.git,**/.git,**/node_modules,**/dist,**/htmlcov,**/*.xml'
+                sh 'make init'
             }
         }
 
         // ------------------------------------------------------------------ //
         stage('Lint + Typecheck') {
-            agent any
-            options { skipDefaultCheckout() }
-            steps {
-                unstash 'source'
-                dir('frontend') {
-                    sh '''
-                        export COMPOSE_PROJECT_NAME="movie-finder-frontend-ci-${env.BUILD_NUMBER}"
-                        make init
-                    '''
-                    parallel(
-                        'Lint': {
-                            sh 'export COMPOSE_PROJECT_NAME="movie-finder-frontend-ci-${env.BUILD_NUMBER}" && make lint'
-                        },
-                        'Typecheck': {
-                            sh 'export COMPOSE_PROJECT_NAME="movie-finder-frontend-ci-${env.BUILD_NUMBER}" && make typecheck'
-                        }
-                    )
+            parallel {
+                stage('Lint') {
+                    steps {
+                        sh 'make lint'
+                    }
                 }
-            }
-            post {
-                always {
-                    dir('frontend') {
-                        sh 'export COMPOSE_PROJECT_NAME="movie-finder-frontend-ci-${env.BUILD_NUMBER}" && make ci-down || true'
+                stage('Typecheck') {
+                    steps {
+                        sh 'make typecheck'
                     }
                 }
             }
@@ -90,24 +74,15 @@ pipeline {
 
         // ------------------------------------------------------------------ //
         stage('Test') {
-            agent any
-            options { skipDefaultCheckout() }
             steps {
-                unstash 'source'
-                dir('frontend') {
-                    sh '''
-                        export COMPOSE_PROJECT_NAME="movie-finder-frontend-ci-${env.BUILD_NUMBER}"
-                        make init
-                        make test-coverage
-                    '''
-                }
+                sh 'make test-coverage'
             }
             post {
                 always {
-                    junit allowEmptyResults: true, testResults: 'frontend/test-results/frontend-results.xml'
+                    junit allowEmptyResults: true, testResults: 'test-results/frontend-results.xml'
                     recordCoverage(
                         tools: [
-                            [parser: 'COBERTURA', pattern: 'frontend/coverage/movie-finder-ui/cobertura-coverage.xml']
+                            [parser: 'COBERTURA', pattern: 'coverage/movie-finder-ui/cobertura-coverage.xml']
                         ],
                         id: 'coverage',
                         name: 'Frontend Coverage',
@@ -118,9 +93,6 @@ pipeline {
                             [threshold: 10.0, metric: 'BRANCH', baseline: 'PROJECT', unstable: true]
                         ]
                     )
-                    dir('frontend') {
-                        sh 'export COMPOSE_PROJECT_NAME="movie-finder-frontend-ci-${env.BUILD_NUMBER}" && make ci-down || true'
-                    }
                 }
             }
         }
@@ -134,7 +106,6 @@ pipeline {
                     expression { params.DEPLOY_STAGING == true }
                 }
             }
-            agent any
             environment {
                 ACR_SERVER = credentials('acr-login-server')
                 ACR_CREDENTIALS = credentials('acr-credentials')
@@ -147,15 +118,12 @@ pipeline {
                 }
                 sh 'echo "$ACR_CREDENTIALS_PSW" | docker login "$ACR_SERVER" -u "$ACR_CREDENTIALS_USR" --password-stdin'
                 sh "docker pull ${env.ACR_SERVER}/${env.SERVICE_NAME}:latest || true"
-                // Build from frontend/ — that directory is the Docker build context.
-                dir('frontend') {
-                    sh """
-                        docker build \
-                            --cache-from ${env.ACR_SERVER}/${env.SERVICE_NAME}:latest \
-                            -t ${env.FULL_IMAGE} \
-                            .
-                    """
-                }
+                sh """
+                    docker build \
+                        --cache-from ${env.ACR_SERVER}/${env.SERVICE_NAME}:latest \
+                        -t ${env.FULL_IMAGE} \
+                        .
+                """
                 sh "docker push ${env.FULL_IMAGE}"
                 script {
                     if (env.BRANCH_NAME == 'main') {
@@ -186,7 +154,6 @@ pipeline {
                     expression { params.DEPLOY_STAGING == true }
                 }
             }
-            agent any
             environment {
                 AZURE_SP        = credentials('azure-sp')
                 AZURE_TENANT_ID = credentials('azure-tenant-id')
@@ -224,7 +191,6 @@ pipeline {
         // ------------------------------------------------------------------ //
         stage('Deploy to Production') {
             when { buildingTag() }
-            agent any
             environment {
                 AZURE_SP        = credentials('azure-sp')
                 AZURE_TENANT_ID = credentials('azure-tenant-id')
@@ -268,9 +234,8 @@ pipeline {
 
     post {
         always {
-            node('') {
-                cleanWs()
-            }
+            sh 'make ci-down || true'
+            cleanWs()
         }
         failure {
             echo "Pipeline failed on ${env.BRANCH_NAME ?: env.GIT_TAG_NAME ?: 'unknown ref'}."
@@ -280,7 +245,9 @@ pipeline {
                 if (buildingTag()) {
                     echo "Release ${env.GIT_TAG_NAME} (${env.BUILD_TAG}) built and pushed."
                 } else if (env.BRANCH_NAME == 'main') {
-                    echo "Build ${env.BUILD_TAG} pushed to ACR."
+                    echo "Build ${env.BUILD_TAG} pushed to ACR and deployed to staging."
+                } else {
+                    echo "Frontend CI passed for ${env.BRANCH_NAME}."
                 }
             }
         }
