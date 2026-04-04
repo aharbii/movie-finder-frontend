@@ -29,6 +29,8 @@ NPM      := npm
 GIT_DIR_HOST  := $(shell git rev-parse --git-dir)
 GIT_HOOKS_DIR := $(GIT_DIR_HOST)/hooks
 
+export CLIENT_GIT_DIR := $(GIT_DIR_HOST)
+
 JUNIT_XML     ?= test-results/frontend-results.xml
 
 # ---------------------------------------------------------------------------
@@ -39,7 +41,7 @@ define exec_or_run
 	@if $(COMPOSE) ps --services --status running 2>/dev/null | grep -qx "$(SERVICE)"; then \
 		$(COMPOSE) exec $(SERVICE) $(1); \
 	else \
-		$(COMPOSE) run --rm --no-deps $(SERVICE) sh -c "npm install -g npm@11.8.0 --prefer-offline 2>/dev/null; $(1)"; \
+		$(COMPOSE) run --rm --no-deps $(SERVICE) $(1); \
 	fi
 endef
 
@@ -72,7 +74,7 @@ help:
 	@echo ""
 
 init:
-	$(COMPOSE) pull $(SERVICE)
+	$(COMPOSE) build $(SERVICE)
 	$(call exec_or_run,npm ci --prefer-offline)
 	@printf '#!/bin/sh\nexec make pre-commit\n' > $(GIT_HOOKS_DIR)/pre-commit
 	@chmod +x $(GIT_HOOKS_DIR)/pre-commit
@@ -112,10 +114,10 @@ test:
 
 test-coverage:
 	@mkdir -p test-results
-	$(call exec_or_run,VITEST_JUNIT_OUTPUT_FILE=$(JUNIT_XML) $(NPM) run test:ci)
+	$(call exec_or_run,env VITEST_JUNIT_OUTPUT_FILE=$(JUNIT_XML) $(NPM) run test:ci)
 
 pre-commit:
-	$(call exec_or_run,npx pre-commit run --all-files)
+	$(call exec_or_run,pre-commit run --all-files)
 
 check: typecheck lint test-coverage
 

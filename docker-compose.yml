@@ -22,12 +22,14 @@ services:
   # TypeScript, Vitest) run here — no Node.js required on the host.
   # ---------------------------------------------------------------------------
   dev:
-    image: node:22-alpine
+    build:
+      context: .
+      target: dev
     container_name: movie-finder-frontend-dev
     working_dir: /workspace
+    environment:
+      GIT_DIR: /workspace/.gitdir
+      GIT_WORK_TREE: /workspace
     volumes:
       - .:/workspace
-    # Run npm install once so the global npm matches the declared packageManager.
-    # Then keep the container alive so exec-based quality commands are instant.
-    command: >
-      sh -c "npm install -g npm@11.8.0 --prefer-offline 2>/dev/null; sleep infinity"
+      - ${CLIENT_GIT_DIR:-.git}:/workspace/.gitdir

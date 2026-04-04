@@ -1,10 +1,12 @@
 # syntax=docker/dockerfile:1
 # =============================================================================
-# movie-finder-frontend — optimised multi-stage build
+# movie-finder-frontend — multi-stage build (dev + production)
 #
-# Stage 1 (deps):    Install npm dependencies with BuildKit cache mount.
-# Stage 2 (builder): Compile the Angular app for production.
-# Stage 3 (runner):  Minimal nginx:alpine image — no Node.js, no build tools.
+# Targets:
+#   dev      Local Docker-only development image used by docker-compose.yml
+#   deps     Install npm dependencies with BuildKit cache mount
+#   builder  Compile the Angular app for production
+#   runner   Minimal nginx:alpine image — production delivery
 #
 # Build:
 #   docker build -t movie-finder-frontend .
@@ -13,13 +15,29 @@
 #   docker run -p 80:80 \
 #     -e BACKEND_URL=http://localhost:8000 \
 #     movie-finder-frontend
-#
-# Runtime environment variables:
-#   API_URL      — URL the Angular app uses for API calls.
-#                  Set to "" (default) for same-origin proxying through nginx.
-#   BACKEND_URL  — Where nginx forwards /auth /chat /health requests.
-#                  e.g. http://movie-finder-backend:8000 (internal Azure VNET)
 # =============================================================================
+
+# ── Stage 0: dev ─────────────────────────────────────────────────────────────
+# Used by `docker-compose.yml` and VS Code "Attach to Running Container".
+FROM node:22-alpine AS dev
+
+RUN apk add --no-cache \
+    git \
+    make \
+    python3 \
+    py3-pip \
+    && pip install pre-commit --break-system-packages --quiet
+
+# Upgrade npm to match the version declared in packageManager (npm@11.8.0).
+RUN npm install -g npm@11.8.0 --prefer-offline 2>/dev/null
+
+WORKDIR /workspace
+
+# Reset entrypoint from parent node image
+ENTRYPOINT []
+
+# Keep container alive for fast exec commands
+CMD ["sleep", "infinity"]
 
 # ── Stage 1: install dependencies ────────────────────────────────────────────
 FROM node:22-alpine AS deps

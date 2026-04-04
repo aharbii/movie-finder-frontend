@@ -2,81 +2,79 @@
 
 Angular 21 SPA for the Movie Finder application. Communicates with the FastAPI backend via REST + SSE streaming.
 
-## Prerequisites
+## Developer Contract (Docker-only)
+
+This project uses a **Docker-only developer contract**. All quality commands (lint, format, typecheck, test) run inside a Node.js container to ensure consistency between local development and CI. No Node.js or npm is required on your host machine.
+
+### Prerequisites
 
 | Tool | Version | Notes |
 |------|---------|-------|
-| Node.js | 20+ | [nodejs.org](https://nodejs.org) |
-| npm | 11+ | bundled with Node 20 |
-| Angular CLI | 21+ | installed via `npm ci` |
+| Docker Desktop | Latest | [docker.com](https://www.docker.com/products/docker-desktop) |
+| Make | 3.81+ | Standard on macOS/Linux |
 
-## Quick start
+### Quick Start
 
 ```bash
-# From the repo root — start the full stack (backend + frontend + postgres)
-cd ../ && docker compose up
+# 1. Initialize the project (pull image, npm ci, install git hook)
+make init
 
-# Or run the frontend in isolation against a local backend
-cd frontend
-npm ci
-npm start          # http://localhost:4200  (proxies /api → localhost:8000)
+# 2. Start the long-running dev container (enables instant execution)
+make editor-up
+
+# 3. Run all quality checks
+make check
+
+# 4. Open a shell in the dev container (if needed)
+make shell
 ```
 
-## Available scripts
+> **Warning:** Avoid running `npm install` or `npm ci` directly on your host. This can lead to permission issues (as `node_modules` are owned by root inside the container) and version mismatches. Always use `make init`.
 
-| Script | What it does |
+---
+
+## Available Commands (Makefile)
+
+The `Makefile` is the primary entry point for all development tasks.
+
+| Target | Description |
 |--------|-------------|
-| `npm start` | Dev server with hot-reload on `http://localhost:4200` |
-| `npm run build` | Production build → `dist/` |
-| `npm test` | Unit tests in watch mode (Vitest) |
-| `npm run test:ci` | Unit tests, single run with LCOV + Cobertura coverage → `coverage/` |
-| `npm run typecheck` | TypeScript type-check without emitting (`tsc --noEmit`) |
-| `npm run lint` | ESLint on all `.ts` and `.html` files |
-| `npm run lint:fix` | ESLint with auto-fix |
-| `npm run format` | Prettier — reformat all source files |
-| `npm run format:check` | Prettier — check formatting only (used in CI) |
+| `make init` | Pull Node image, run `npm ci`, and install the git pre-commit hook. |
+| `make editor-up` | Start the `dev` container in the background for fast command execution. |
+| `make editor-down` | Stop and remove the `dev` container. |
+| `make shell` | Open an interactive shell inside the `dev` container. |
+| `make lint` | Run ESLint (report only). |
+| `make format` | Run Prettier (apply changes). |
+| `make fix` | Run `ng lint --fix` + Prettier (apply all auto-fixes). |
+| `make typecheck` | Run `tsc --noEmit`. |
+| `make test` | Run Vitest in CI mode. |
+| `make test-coverage` | Run Vitest with coverage and JUnit XML output for Jenkins. |
+| `make check` | Run `typecheck`, `lint`, and `test-coverage` in sequence. |
+| `make build` | Production Angular build (generates `dist/`). |
+| `make ci-down` | Full cleanup: stop container and remove local images/volumes. |
 
-## Code quality
+---
 
-### Linting (ESLint 9 + angular-eslint 19)
+## Development Workflow
 
-Uses the [ESLint flat config](eslint.config.js) with:
-- `typescript-eslint` recommended + stylistic rules
-- `@angular-eslint` component/directive conventions
-- `@angular-eslint/template` HTML template rules
+### 1. VS Code Integration
 
-```bash
-npm run lint          # check
-npm run lint:fix      # auto-fix
-```
+This repo includes a pre-configured `.vscode/` directory. For the best experience:
+1. Run `make editor-up`.
+2. Attach VS Code to the running `movie-finder-frontend-dev` container using the **Dev Containers** extension.
+3. The interpreter and all tools will be correctly mapped to the container's environment.
 
-### Formatting (Prettier 3)
+### 2. Pre-commit Hook
 
-Config: [.prettierrc](.prettierrc)
+`make init` installs a git pre-commit hook that automatically runs `make pre-commit` (which executes `npx pre-commit run`) before every commit. This ensures no linting or formatting errors are committed.
 
-```bash
-npm run format        # write
-npm run format:check  # check only (CI)
-```
+### 3. Tests + Coverage
 
-### Type checking
+Tests use [Vitest](https://vitest.dev/). When running `make test-coverage`, results are written to:
+- `test-results/frontend-results.xml` (JUnit)
+- `coverage/cobertura-coverage.xml` (Cobertura)
 
-```bash
-npm run typecheck
-```
-
-### Tests + coverage
-
-Tests are written with `@angular/core/testing` + [Vitest](https://vitest.dev/). Coverage is provided by `@vitest/coverage-v8`.
-
-```bash
-npm test             # watch mode
-npm run test:ci      # single run — coverage report written to coverage/
-```
-
-Coverage reports:
-- `coverage/lcov.info` — for LCOV-compatible tools
-- `coverage/cobertura-coverage.xml` — consumed by Jenkins Coverage plugin
+---
 
 ## Project structure
 
@@ -102,7 +100,7 @@ src/
 └── main.ts                  bootstrap
 ```
 
-## Docker
+## Docker Production Build
 
 The multi-stage [Dockerfile](Dockerfile) produces a minimal nginx image:
 
@@ -112,22 +110,21 @@ Stage 2 (builder) — ng build --configuration=production
 Stage 3 (runner)  — nginx:stable-alpine + Angular bundle
 ```
 
-Runtime environment variables are injected at container start via [docker-entrypoint.sh](docker-entrypoint.sh), which substitutes `nginx.conf.template` placeholders:
+Runtime environment variables are injected via [docker-entrypoint.sh](docker-entrypoint.sh):
 
 | Variable | Default | Purpose |
 |----------|---------|---------|
-| `API_URL` | `` (empty) | Passed to `window.__env.API_URL` in `public/env.js` |
-| `BACKEND_URL` | `http://backend:8000` | nginx upstream for `/api` proxy |
+| `API_URL` | `` (empty) | Injected into `window.__env.API_URL` |
+| `BACKEND_URL` | `http://backend:8000` | nginx upstream proxy for `/api` |
 
 ## CI/CD (Jenkins)
 
-The [Jenkinsfile](Jenkinsfile) runs three pipeline modes:
-
-| Mode | Trigger | Stages |
-|------|---------|--------|
-| CONTRIBUTION | Feature branches / PRs | Type-check → Lint → Test |
-| INTEGRATION | `main` branch | + Production build → Push `:sha8` + `:latest` to ACR → (opt) Staging deploy |
-| RELEASE | `v*` tags | + Push `:v1.2.3` to ACR → (opt) Production deploy |
+The [Jenkinsfile](Jenkinsfile) follows the project-wide pipeline standards:
+1. **Checkout**: Standard git checkout.
+2. **Initialize**: Runs `make init`.
+3. **Lint + Typecheck**: Runs `make lint` and `make typecheck` in parallel.
+4. **Test**: Runs `make test-coverage` and publishes results.
+5. **Build + Deploy**: Build Docker image and deploy to Azure (Main/Tag only).
 
 Test results are published to Jenkins via the JUnit plugin (`VITEST_JUNIT_OUTPUT_FILE`).
 Coverage is published via the Coverage plugin (Cobertura XML from `coverage/`).

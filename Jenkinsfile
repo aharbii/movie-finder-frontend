@@ -1,38 +1,27 @@
 // =============================================================================
 // movie-finder-frontend — Jenkins declarative pipeline
 //
-// Three pipeline modes, selected automatically by branch / tag context:
+// Stages:
+//   1. Checkout
+//   2. Lint + Typecheck — frontend app
+//   3. Test — frontend app (Vitest with coverage)
+//   4. Build App Image
+//   5. Deploy to Staging
+//   6. Deploy to Production
 //
-//  CONTRIBUTION  (feature branches, pull requests)
-//    → Type-check + Lint + Test with coverage. Fast feedback loop (< 5 min).
-//      Nothing is built or pushed.
+// Required Jenkins credentials (see docs/devops/setup.md):
+//   acr-login-server          Secret text        — ACR hostname
+//   acr-credentials           Username/Password  — ACR service-principal
+//   azure-sp                  Username/Password  — Azure SP (USR=client-id, PSW=secret)
+//   azure-tenant-id           Secret text        — Azure tenant UUID
+//   azure-sub-id              Secret text        — Azure subscription ID
+//   aca-staging-rg            Secret text        — Staging Container App resource group
+//   aca-frontend-staging-name Secret text        — Staging Container App name
+//   aca-prod-rg               Secret text        — Production Container App resource group
+//   aca-frontend-name         Secret text        — Production Container App name
 //
-//  INTEGRATION   (main branch)
-//    → All CONTRIBUTION checks + production build + Docker image pushed to ACR.
-//      Optional: deploy to Azure staging slot (DEPLOY_STAGING param).
-//
-//  RELEASE       (git tags matching v*)
-//    → Same as integration, plus a semantically versioned Docker tag
-//      and an optional production deployment (DEPLOY_PRODUCTION param).
-//
-// ── Required Jenkins credentials ────────────────────────────────────────────
-//  acr-login-server          Secret text        — ACR hostname
-//  acr-credentials           Username/Password  — ACR service-principal
-//  azure-sp                  Username/Password  — Azure SP (USR=client-id, PSW=secret)
-//  azure-tenant-id           Secret text        — Azure tenant UUID
-//  aca-rg                    Secret text        — Container Apps resource group
-//  aca-frontend-staging-name Secret text        — Staging Container App name
-//  aca-frontend-name         Secret text        — Production Container App name
-//
-// ── Required Jenkins plugins ─────────────────────────────────────────────────
-//  Credentials Binding, Git, JUnit
-//  Note: docker run is used directly in steps — Docker Pipeline plugin not needed.
-//  Note: stages use "agent any" — schedules on the built-in controller or any connected agent.
-//
-// ── GitHub Webhook ───────────────────────────────────────────────────────────
-//  Payload URL : https://<jenkins>/github-webhook/
-//  Content type: application/json
-//  Events      : Push, Pull request
+// Required Jenkins plugins:
+//   GitHub, Docker, JUnit, Coverage, Credentials Binding, Git
 // =============================================================================
 
 pipeline {
@@ -48,89 +37,77 @@ pipeline {
         booleanParam(
             name: 'DEPLOY_STAGING',
             defaultValue: false,
-            description: '[INTEGRATION] Deploy image to Azure staging slot after build.'
-        )
-        booleanParam(
-            name: 'DEPLOY_PRODUCTION',
-            defaultValue: false,
-            description: '[RELEASE] Promote tagged image to the production slot.'
+            description: 'Force a staging deploy from any branch after a successful build.'
         )
     }
 
     environment {
         SERVICE_NAME = 'movie-finder-frontend'
-        NODE_IMAGE   = 'node:22-alpine'
     }
 
     stages {
 
-        // ====================================================================
-        // CONTRIBUTION — runs on every branch and PR
-        //
-        // All quality stages run npm commands inside a node:22-alpine container.
-        // The workspace is mounted at /workspace; --mount caches npm downloads in
-        // a named Docker volume (jenkins-npm-cache) shared across builds on the
-        // same agent — avoids re-downloading packages on every build run.
-        //
-        // dir('frontend') ensures all npm commands resolve against frontend/
-        // (where package.json lives), not the root of the movie-finder checkout.
-        // ====================================================================
-
-        stage('Type-check') {
+        // ------------------------------------------------------------------ //
+        stage('Checkout') {
             agent any
             steps {
-                dir('frontend') {
-                    sh """
-                        docker run --rm \
-                            -v "\$(pwd)":/workspace \
-                            --mount type=volume,source=jenkins-npm-cache,target=/root/.npm \
-                            -w /workspace \
-                            ${NODE_IMAGE} sh -c \
-                            'npm install -g npm@11.8.0 --prefer-offline && npm ci --prefer-offline && npm run typecheck'
-                    """
-                }
+                checkout scm
+                // Stash the complete workspace so later stages can run on any
+                // executor with the full repo checkout.
+                stash name: 'source', excludes: '.git,**/.git,**/node_modules,**/dist,**/htmlcov,**/*.xml'
             }
         }
 
-        stage('Lint') {
+        // ------------------------------------------------------------------ //
+        stage('Lint + Typecheck') {
             agent any
+            options { skipDefaultCheckout() }
             steps {
+                unstash 'source'
                 dir('frontend') {
-                    sh """
-                        docker run --rm \
-                            -v "\$(pwd)":/workspace \
-                            --mount type=volume,source=jenkins-npm-cache,target=/root/.npm \
-                            -w /workspace \
-                            ${NODE_IMAGE} sh -c \
-                            'npm install -g npm@11.8.0 --prefer-offline && npm ci --prefer-offline && npm run lint && npm run format:check'
-                    """
-                }
-            }
-        }
-
-        stage('Test') {
-            agent any
-            steps {
-                dir('frontend') {
-                    sh 'mkdir -p test-results'
-                    sh """
-                        docker run --rm \
-                            -v "\$(pwd)":/workspace \
-                            --mount type=volume,source=jenkins-npm-cache,target=/root/.npm \
-                            -w /workspace \
-                            -e VITEST_JUNIT_OUTPUT_FILE=test-results/frontend-results.xml \
-                            ${NODE_IMAGE} sh -c \
-                            'npm install -g npm@11.8.0 --prefer-offline && npm ci --prefer-offline && npm run test:ci'
-                    """
+                    sh '''
+                        export COMPOSE_PROJECT_NAME="movie-finder-frontend-ci-${env.BUILD_NUMBER}"
+                        make init
+                    '''
+                    parallel(
+                        'Lint': {
+                            sh 'export COMPOSE_PROJECT_NAME="movie-finder-frontend-ci-${env.BUILD_NUMBER}" && make lint'
+                        },
+                        'Typecheck': {
+                            sh 'export COMPOSE_PROJECT_NAME="movie-finder-frontend-ci-${env.BUILD_NUMBER}" && make typecheck'
+                        }
+                    )
                 }
             }
             post {
                 always {
-                    junit allowEmptyResults: true,
-                          testResults: 'frontend/test-results/frontend-results.xml'
+                    dir('frontend') {
+                        sh 'export COMPOSE_PROJECT_NAME="movie-finder-frontend-ci-${env.BUILD_NUMBER}" && make ci-down || true'
+                    }
+                }
+            }
+        }
+
+        // ------------------------------------------------------------------ //
+        stage('Test') {
+            agent any
+            options { skipDefaultCheckout() }
+            steps {
+                unstash 'source'
+                dir('frontend') {
+                    sh '''
+                        export COMPOSE_PROJECT_NAME="movie-finder-frontend-ci-${env.BUILD_NUMBER}"
+                        make init
+                        make test-coverage
+                    '''
+                }
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'frontend/test-results/frontend-results.xml'
                     recordCoverage(
                         tools: [
-                            [parser: 'COBERTURA', pattern: 'frontend/coverage/cobertura-coverage.xml']
+                            [parser: 'COBERTURA', pattern: 'frontend/coverage/movie-finder-ui/cobertura-coverage.xml']
                         ],
                         id: 'coverage',
                         name: 'Frontend Coverage',
@@ -141,130 +118,100 @@ pipeline {
                             [threshold: 10.0, metric: 'BRANCH', baseline: 'PROJECT', unstable: true]
                         ]
                     )
+                    dir('frontend') {
+                        sh 'export COMPOSE_PROJECT_NAME="movie-finder-frontend-ci-${env.BUILD_NUMBER}" && make ci-down || true'
+                    }
                 }
             }
         }
 
-        // ====================================================================
-        // INTEGRATION + RELEASE — skipped on feature branches / PRs
-        // ====================================================================
-
-        stage('Production build') {
+        // ------------------------------------------------------------------ //
+        stage('Build App Image') {
             when {
-                anyOf { branch 'main'; buildingTag() }
-            }
-            agent any
-            steps {
-                dir('frontend') {
-                    sh """
-                        docker run --rm \
-                            -v "\$(pwd)":/workspace \
-                            --mount type=volume,source=jenkins-npm-cache,target=/root/.npm \
-                            -w /workspace \
-                            ${NODE_IMAGE} sh -c \
-                            'npm install -g npm@11.8.0 --prefer-offline && npm ci --prefer-offline && npx ng build --configuration=production'
-                    """
+                anyOf {
+                    branch 'main'
+                    buildingTag()
+                    expression { params.DEPLOY_STAGING == true }
                 }
-            }
-            post {
-                success {
-                    archiveArtifacts artifacts: 'frontend/dist/**', fingerprint: true
-                }
-            }
-        }
-
-        stage('Push image to ACR') {
-            when {
-                anyOf { branch 'main'; buildingTag() }
             }
             agent any
             environment {
-                ACR_SERVER      = credentials('acr-login-server')
+                ACR_SERVER = credentials('acr-login-server')
                 ACR_CREDENTIALS = credentials('acr-credentials')
-                SHA_TAG         = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_COMMIT.take(8)}"
             }
             steps {
-                sh '''
-                    echo "${ACR_CREDENTIALS_PSW}" | \
-                        docker login "${ACR_SERVER}" \
-                            --username "${ACR_CREDENTIALS_USR}" \
-                            --password-stdin
-                '''
-
+                script {
+                    def tag = env.GIT_TAG_NAME ?: env.GIT_COMMIT.take(8)
+                    env.BUILD_TAG  = tag
+                    env.FULL_IMAGE = "${env.ACR_SERVER}/${env.SERVICE_NAME}:${tag}"
+                }
+                sh 'echo "$ACR_CREDENTIALS_PSW" | docker login "$ACR_SERVER" -u "$ACR_CREDENTIALS_USR" --password-stdin'
+                sh "docker pull ${env.ACR_SERVER}/${env.SERVICE_NAME}:latest || true"
                 // Build from frontend/ — that directory is the Docker build context.
                 dir('frontend') {
                     sh """
                         docker build \
-                            --cache-from ${ACR_SERVER}/${SERVICE_NAME}:latest \
-                            -t ${SHA_TAG} \
+                            --cache-from ${env.ACR_SERVER}/${env.SERVICE_NAME}:latest \
+                            -t ${env.FULL_IMAGE} \
                             .
                     """
                 }
-                sh "docker push ${SHA_TAG}"
-
+                sh "docker push ${env.FULL_IMAGE}"
                 script {
                     if (env.BRANCH_NAME == 'main') {
-                        sh "docker tag  ${SHA_TAG} ${ACR_SERVER}/${SERVICE_NAME}:latest"
-                        sh "docker push ${ACR_SERVER}/${SERVICE_NAME}:latest"
-                    }
-                    if (buildingTag()) {
-                        def semver = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_TAG_NAME}"
-                        sh "docker tag  ${SHA_TAG} ${semver}"
-                        sh "docker push ${semver}"
+                        def latestImage = "${env.ACR_SERVER}/${env.SERVICE_NAME}:latest"
+                        sh "docker tag ${env.FULL_IMAGE} ${latestImage}"
+                        sh "docker push ${latestImage}"
                     }
                 }
             }
             post {
                 always {
-                    sh 'docker logout "${ACR_SERVER}" || true'
-                    // Remove locally-built images after push to prevent Jenkins node storage bloat.
-                    // Public base images (node:22-alpine, nginx:stable-alpine) are NOT removed —
-                    // they remain cached on the Jenkins node for future builds.
-                    sh "docker rmi ${SHA_TAG} || true"
+                    sh 'docker logout "$ACR_SERVER" || true'
+                    sh "docker rmi ${env.FULL_IMAGE} || true"
                     script {
                         if (env.BRANCH_NAME == 'main') {
-                            sh "docker rmi ${ACR_SERVER}/${SERVICE_NAME}:latest || true"
-                        }
-                        if (buildingTag()) {
-                            sh "docker rmi ${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_TAG_NAME} || true"
+                            sh "docker rmi ${env.ACR_SERVER}/${env.SERVICE_NAME}:latest || true"
                         }
                     }
                 }
             }
         }
 
-        // ====================================================================
-        // STAGING DEPLOY — main branch, manual opt-in
-        // ====================================================================
-
-        stage('Deploy to staging') {
+        // ------------------------------------------------------------------ //
+        stage('Deploy to Staging') {
             when {
-                allOf {
+                anyOf {
                     branch 'main'
                     expression { params.DEPLOY_STAGING == true }
                 }
             }
             agent any
             environment {
-                ACR_SERVER      = credentials('acr-login-server')
                 AZURE_SP        = credentials('azure-sp')
                 AZURE_TENANT_ID = credentials('azure-tenant-id')
+                AZURE_SUB_ID    = credentials('azure-sub-id')
                 ACA_RG          = credentials('aca-staging-rg')
-                ACA_APP_NAME    = credentials('aca-frontend-staging-name')
-                IMAGE_TAG       = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_COMMIT.take(8)}"
+                ACA_NAME        = credentials('aca-frontend-staging-name')
+                ACR_SERVER      = credentials('acr-login-server')
             }
             steps {
                 sh '''
                     az login --service-principal \
-                        --username "${AZURE_SP_USR}" \
-                        --password "${AZURE_SP_PSW}" \
-                        --tenant  "${AZURE_TENANT_ID}"
+                        --username "$AZURE_SP_USR" \
+                        --password "$AZURE_SP_PSW" \
+                        --tenant   "$AZURE_TENANT_ID"
+                    az account set --subscription "$AZURE_SUB_ID"
                 '''
                 sh '''
                     az containerapp update \
-                        --name           "${ACA_APP_NAME}" \
-                        --resource-group "${ACA_RG}" \
-                        --image          "${IMAGE_TAG}"
+                        --name           "$ACA_NAME" \
+                        --resource-group "$ACA_RG" \
+                        --image          "$ACR_SERVER/$SERVICE_NAME:$BUILD_TAG"
+                    az containerapp revision list \
+                        --name           "$ACA_NAME" \
+                        --resource-group "$ACA_RG" \
+                        --output         table
                 '''
             }
             post {
@@ -274,38 +221,40 @@ pipeline {
             }
         }
 
-        // ====================================================================
-        // PRODUCTION DEPLOY — tagged releases, manual opt-in
-        // ====================================================================
-
-        stage('Deploy to production') {
-            when {
-                allOf {
-                    buildingTag()
-                    expression { params.DEPLOY_PRODUCTION == true }
-                }
-            }
+        // ------------------------------------------------------------------ //
+        stage('Deploy to Production') {
+            when { buildingTag() }
             agent any
             environment {
-                ACR_SERVER      = credentials('acr-login-server')
                 AZURE_SP        = credentials('azure-sp')
                 AZURE_TENANT_ID = credentials('azure-tenant-id')
+                AZURE_SUB_ID    = credentials('azure-sub-id')
                 ACA_RG          = credentials('aca-prod-rg')
-                ACA_APP_NAME    = credentials('aca-frontend-name')
-                IMAGE_TAG       = "${ACR_SERVER}/${SERVICE_NAME}:${env.GIT_TAG_NAME}"
+                ACA_NAME        = credentials('aca-frontend-name')
+                ACR_SERVER      = credentials('acr-login-server')
             }
             steps {
+                timeout(time: 30, unit: 'MINUTES') {
+                    input message: "Deploy ${env.GIT_TAG_NAME} to PRODUCTION?",
+                          ok: 'Deploy',
+                          submitter: 'release-managers'
+                }
                 sh '''
                     az login --service-principal \
-                        --username "${AZURE_SP_USR}" \
-                        --password "${AZURE_SP_PSW}" \
-                        --tenant  "${AZURE_TENANT_ID}"
+                        --username "$AZURE_SP_USR" \
+                        --password "$AZURE_SP_PSW" \
+                        --tenant   "$AZURE_TENANT_ID"
+                    az account set --subscription "$AZURE_SUB_ID"
                 '''
                 sh '''
                     az containerapp update \
-                        --name           "${ACA_APP_NAME}" \
-                        --resource-group "${ACA_RG}" \
-                        --image          "${IMAGE_TAG}"
+                        --name           "$ACA_NAME" \
+                        --resource-group "$ACA_RG" \
+                        --image          "$ACR_SERVER/$SERVICE_NAME:$BUILD_TAG"
+                    az containerapp revision list \
+                        --name           "$ACA_NAME" \
+                        --resource-group "$ACA_RG" \
+                        --output         table
                 '''
             }
             post {
@@ -324,12 +273,14 @@ pipeline {
             }
         }
         failure {
-            echo "Pipeline failed — branch: ${env.BRANCH_NAME ?: 'tag'}, stage: ${env.STAGE_NAME}."
+            echo "Pipeline failed on ${env.BRANCH_NAME ?: env.GIT_TAG_NAME ?: 'unknown ref'}."
         }
         success {
             script {
                 if (buildingTag()) {
-                    echo "Release ${env.GIT_TAG_NAME} built and pushed."
+                    echo "Release ${env.GIT_TAG_NAME} (${env.BUILD_TAG}) built and pushed."
+                } else if (env.BRANCH_NAME == 'main') {
+                    echo "Build ${env.BUILD_TAG} pushed to ACR."
                 }
             }
         }
