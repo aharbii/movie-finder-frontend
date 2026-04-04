@@ -72,6 +72,13 @@ export interface SessionSummary {
   confirmed_movie?: ConfirmedMovie | null;
 }
 
+export interface SessionPage {
+  total: number;
+  limit: number;
+  offset: number;
+  items: SessionSummary[];
+}
+
 export interface SessionHistory {
   session_id: string;
   phase: Phase;

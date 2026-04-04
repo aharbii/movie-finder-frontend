@@ -8,7 +8,7 @@ import {
   Message,
   Phase,
   SessionHistory,
-  SessionSummary,
+  SessionPage,
   SseDoneEvent,
   SseEvent,
 } from '../models';
@@ -64,16 +64,14 @@ export class ChatService {
 
   /** Called once after login or on page reload to populate the sidebar. */
   async restoreSessions(): Promise<void> {
-    let summaries: SessionSummary[];
+    let page: SessionPage;
     try {
-      summaries = await firstValueFrom(
-        this.http.get<SessionSummary[]>(`${this.base}/chat/sessions`),
-      );
+      page = await firstValueFrom(this.http.get<SessionPage>(`${this.base}/chat/sessions`));
     } catch {
       return; // endpoint not ready or network error — leave state empty
     }
 
-    const restored: ChatSession[] = summaries.map((s) => {
+    const restored: ChatSession[] = page.items.map((s) => {
       const movie = s.confirmed_movie ? this.normalizeMovie(s.confirmed_movie) : undefined;
       return {
         session_id: s.session_id,

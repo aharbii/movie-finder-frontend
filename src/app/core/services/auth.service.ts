@@ -73,7 +73,18 @@ export class AuthService {
     }
   }
 
-  logout(): void {
+  async logout(): Promise<void> {
+    const refresh_token = this.getRefreshToken();
+    if (refresh_token) {
+      try {
+        await firstValueFrom(
+          this.http.post(`${this.base}/auth/logout`, { refresh_token }, { observe: 'response' }),
+        );
+      } catch {
+        // Server-side revocation failed (already revoked or expired) — proceed
+        // with client-side cleanup regardless so the user is always logged out.
+      }
+    }
     localStorage.removeItem(ACCESS_KEY);
     localStorage.removeItem(REFRESH_KEY);
     this.isAuthenticated.set(false);
