@@ -79,7 +79,10 @@
               "watch": false,
               "coverage": true,
               "coverageReporters": ["lcov", "text-summary", "cobertura"],
-              "reporters": ["verbose"]
+              "reporters": [
+                "verbose",
+                ["junit", { "outputFile": "test-results/frontend-results.xml" }]
+              ]
             }
           }
         },

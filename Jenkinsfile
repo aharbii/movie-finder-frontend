@@ -82,15 +82,15 @@ pipeline {
                     junit allowEmptyResults: true, testResults: 'test-results/frontend-results.xml'
                     recordCoverage(
                         tools: [
-                            [parser: 'COBERTURA', pattern: 'coverage/movie-finder-ui/cobertura-coverage.xml']
+                            [parser: 'COBERTURA', pattern: 'coverage/cobertura-coverage.xml']
                         ],
                         id: 'coverage',
                         name: 'Frontend Coverage',
                         sourceCodeRetention: 'EVERY_BUILD',
                         failOnError: false,
                         qualityGates: [
-                            [threshold: 10.0, metric: 'LINE', baseline: 'PROJECT', unstable: true],
-                            [threshold: 10.0, metric: 'BRANCH', baseline: 'PROJECT', unstable: true]
+                            [threshold: 10.0, metric: 'LINE', baseline: 'PROJECT', status: 'UNSTABLE'],
+                            [threshold: 10.0, metric: 'BRANCH', baseline: 'PROJECT', status: 'UNSTABLE']
                         ]
                     )
                 }
@@ -234,6 +234,7 @@ pipeline {
 
     post {
         always {
+            sh 'make clean || true'
             sh 'make ci-down || true'
             cleanWs()
         }

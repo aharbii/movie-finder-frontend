@@ -30,14 +30,16 @@ yarn-error.log
 .history/*
 
 # Miscellaneous
-/.angular/cache
+/.angular
 .sass-cache/
 /connect.lock
 /coverage
+/test-results
 /libpeerconnection.log
 testem.log
 /typings
 __screenshots__/
+.gitdir
 
 # System files
 .DS_Store

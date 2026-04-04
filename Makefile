@@ -18,8 +18,8 @@
 # 'docker compose run --rm --no-deps'.
 # =============================================================================
 
-.PHONY: help init editor-up editor-down shell lint format fix typecheck \
-        test test-coverage pre-commit check build ci-down
+.PHONY: help init editor-up editor-down shell logs lint format fix typecheck \
+        test test-coverage pre-commit check build clean clean-docker ci-down
 
 .DEFAULT_GOAL := help
 
@@ -67,9 +67,12 @@ help:
 	@echo "    test-coverage  Run Vitest with coverage and JUnit output"
 	@echo "    pre-commit     Run all pre-commit hooks"
 	@echo "    check          typecheck + lint + format:check + test-coverage"
+	@echo "    clean          Remove node_modules, dist, and cache folders"
+	@echo "    clean-docker   Stop containers and remove volumes + local images"
 	@echo ""
 	@echo "  Build"
 	@echo "    build          Production Angular build (dist/)"
+	@echo "    logs           Follow workspace container logs"
 	@echo "    ci-down        Full cleanup: stop container, remove image"
 	@echo ""
 
@@ -87,7 +90,10 @@ editor-down:
 	$(COMPOSE) down --remove-orphans
 
 ci-down:
-	$(COMPOSE) down --rmi local --remove-orphans
+	$(COMPOSE) down -v --rmi local --remove-orphans
+
+logs:
+	${COMPOSE} logs -f ${SERVICE}
 
 shell:
 	@if $(COMPOSE) ps --services --status running 2>/dev/null | grep -qx "$(SERVICE)"; then \
@@ -113,8 +119,12 @@ test:
 	$(call exec_or_run,$(NPM) run test:ci)
 
 test-coverage:
-	@mkdir -p test-results
+	$(call exec_or_run,sh -c 'mkdir -p test-results coverage && chmod 777 test-results coverage')
 	$(call exec_or_run,env VITEST_JUNIT_OUTPUT_FILE=$(JUNIT_XML) $(NPM) run test:ci)
+	@# Flatten coverage directory to align with backend submodules (performed inside container for permissions).
+	$(call exec_or_run,sh -c 'if [ -d coverage/movie-finder-ui ]; then mv coverage/movie-finder-ui/* coverage/ 2>/dev/null || true; rm -rf coverage/movie-finder-ui; fi')
+	@# Fix absolute paths in Cobertura report so Jenkins can find the source files.
+	$(call exec_or_run,sed -i "s|/workspace|.|g" coverage/cobertura-coverage.xml)
 
 pre-commit:
 	$(call exec_or_run,pre-commit run --all-files)
@@ -123,3 +133,10 @@ check: typecheck lint test-coverage
 
 build:
 	$(call exec_or_run,npx ng build --configuration=production)
+
+clean:
+	@echo ">>> Removing frontend cache and generated files..."
+	$(call exec_or_run,rm -rf node_modules .angular dist coverage test-results)
+	@echo "Clean complete."
+
+clean-docker: ci-down
