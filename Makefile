@@ -19,7 +19,8 @@
 # =============================================================================
 
 .PHONY: help init editor-up editor-down shell logs lint format fix typecheck \
-        test test-coverage pre-commit check build clean clean-docker ci-down
+        test test-coverage pre-commit check build clean clean-docker ci-down \
+        serve serve-down serve-logs
 
 .DEFAULT_GOAL := help
 
@@ -69,6 +70,11 @@ help:
 	@echo "    check          typecheck + lint + format:check + test-coverage"
 	@echo "    clean          Remove node_modules, dist, and cache folders"
 	@echo "    clean-docker   Stop containers and remove volumes + local images"
+	@echo ""
+	@echo "  Dev server"
+	@echo "    serve          Start Angular dev server — accessible at http://<host-ip>:4200"
+	@echo "    serve-down     Stop the Angular dev server"
+	@echo "    serve-logs     Follow Angular dev server logs"
 	@echo ""
 	@echo "  Build"
 	@echo "    build          Production Angular build (dist/)"
@@ -140,3 +146,19 @@ clean:
 	@echo "Clean complete."
 
 clean-docker: ci-down
+
+serve:
+	$(COMPOSE) up -d serve
+	@echo ""
+	@echo ">>> Angular dev server starting..."
+	@echo ">>> Access locally:    http://localhost:4200"
+	@echo ">>> Access on network: http://<this-host-ip>:4200"
+	@echo ">>> Logs: make serve-logs"
+	@echo ""
+
+serve-down:
+	$(COMPOSE) stop serve
+	$(COMPOSE) rm -f serve
+
+serve-logs:
+	$(COMPOSE) logs -f serve
