@@ -41,7 +41,7 @@ Jenkinsfile            CI/CD pipeline
 | `backend/` | `aharbii/movie-finder-backend` | FastAPI + uv workspace root |
 | `backend/app/` | (nested in backend) | FastAPI application layer |
 | `backend/chain/` | `aharbii/movie-finder-chain` | LangGraph AI pipeline |
-| `backend/imdbapi/` | `aharbii/imdbapi-client` | Async IMDb REST client |
+| `backend/chain/imdbapi/` | `aharbii/imdbapi-client` | Async IMDb REST client |
 | `backend/rag_ingestion/` | `aharbii/movie-finder-rag` | Offline embedding ingestion |
 | `frontend/` | `aharbii/movie-finder-frontend` | **← you are here** |
 | `docs/` | `aharbii/movie-finder-docs` | MkDocs documentation |
