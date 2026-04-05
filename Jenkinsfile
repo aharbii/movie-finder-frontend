@@ -5,16 +5,10 @@
 //   1. Initialize — Build dev image
 //   2. Lint + Typecheck (Parallel)
 //   3. Test — Vitest with coverage
-//   4. Build App Image — Push to ACR (main branch and tags only)
 //
-// Deploy stages have been removed from this pipeline.
-// Staging and production deployments are orchestrated by the root
-// aharbii/movie-finder Jenkinsfile, which pulls the built image from ACR
-// after this pipeline completes.
-//
-// Required Jenkins credentials (Manage Jenkins → Credentials → Global):
-//   acr-login-server   Secret Text      Full ACR hostname, e.g. myacr.azurecr.io
-//   acr-credentials    Username+Pass    SP App ID (user) + client secret (pass)
+// Image build and ACR push are NOT in this pipeline.
+// They are handled by the root aharbii/movie-finder Jenkinsfile after this
+// pipeline signals success, keeping build credentials out of submodule jobs.
 //
 // Required Jenkins plugins:
 //   GitHub, Docker, JUnit, Coverage, Credentials Binding, Git
@@ -30,7 +24,6 @@ pipeline {
     }
 
     environment {
-        SERVICE_NAME = 'movie-finder-frontend'
         // Isolate compose project per build so parallel CI runs don't collide.
         COMPOSE_PROJECT_NAME = "movie-finder-frontend-ci-${env.BUILD_NUMBER}"
     }
@@ -85,54 +78,6 @@ pipeline {
             }
         }
 
-        // ------------------------------------------------------------------ //
-        stage('Build App Image') {
-            when {
-                anyOf {
-                    branch 'main'
-                    buildingTag()
-                }
-            }
-            environment {
-                ACR_SERVER = credentials('acr-login-server')
-                ACR_CREDENTIALS = credentials('acr-credentials')
-            }
-            steps {
-                script {
-                    def tag = env.GIT_TAG_NAME ?: env.GIT_COMMIT.take(8)
-                    env.BUILD_TAG  = tag
-                    env.FULL_IMAGE = "${env.ACR_SERVER}/${env.SERVICE_NAME}:${tag}"
-                }
-                sh 'echo "$ACR_CREDENTIALS_PSW" | docker login "$ACR_SERVER" -u "$ACR_CREDENTIALS_USR" --password-stdin'
-                sh "docker pull ${env.ACR_SERVER}/${env.SERVICE_NAME}:latest || true"
-                sh """
-                    docker build \
-                        --cache-from ${env.ACR_SERVER}/${env.SERVICE_NAME}:latest \
-                        -t ${env.FULL_IMAGE} \
-                        .
-                """
-                sh "docker push ${env.FULL_IMAGE}"
-                script {
-                    if (env.BRANCH_NAME == 'main') {
-                        def latestImage = "${env.ACR_SERVER}/${env.SERVICE_NAME}:latest"
-                        sh "docker tag ${env.FULL_IMAGE} ${latestImage}"
-                        sh "docker push ${latestImage}"
-                    }
-                }
-            }
-            post {
-                always {
-                    sh 'docker logout "$ACR_SERVER" || true'
-                    sh "docker rmi ${env.FULL_IMAGE} || true"
-                    script {
-                        if (env.BRANCH_NAME == 'main') {
-                            sh "docker rmi ${env.ACR_SERVER}/${env.SERVICE_NAME}:latest || true"
-                        }
-                    }
-                }
-            }
-        }
-
     }
 
     post {
@@ -145,15 +90,7 @@ pipeline {
             echo "Pipeline failed on ${env.BRANCH_NAME ?: env.GIT_TAG_NAME ?: 'unknown ref'}."
         }
         success {
-            script {
-                if (buildingTag()) {
-                    echo "Release ${env.GIT_TAG_NAME} (${env.BUILD_TAG}) image pushed to ACR. Deploy via aharbii/movie-finder pipeline."
-                } else if (env.BRANCH_NAME == 'main') {
-                    echo "Build ${env.BUILD_TAG} image pushed to ACR. Deploy via aharbii/movie-finder pipeline."
-                } else {
-                    echo "Frontend CI passed for ${env.BRANCH_NAME}."
-                }
-            }
+            echo "Frontend CI passed for ${env.BRANCH_NAME ?: env.GIT_TAG_NAME ?: 'unknown ref'}."
         }
     }
 }
