@@ -22,5 +22,13 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Multi-stage Dockerfile: deps → builder → nginx runner
 - Runtime environment injection via `docker-entrypoint.sh` (`API_URL`, `BACKEND_URL`)
 - Vitest test suite with Angular TestBed and `@vitest/coverage-v8`
-- Jenkins Multibranch Pipeline (CONTRIBUTION → INTEGRATION → RELEASE modes)
+- Jenkins Multibranch Pipeline (CONTRIBUTION → INTEGRATION modes — Lint · Test)
+- GitHub Actions CI workflow (`.github/workflows/ci.yml`) mirroring Jenkins 1:1:
+  Lint · Test · Coverage reporting via `EnricoMi/publish-unit-test-result-action@v2`,
+  `irongut/CodeCoverageSummary@v1.3.0`, and `marocchino/sticky-pull-request-comment@v2`
 - ESLint 9 flat config + Prettier 3 + `detect-secrets` pre-commit hooks
+
+### Changed
+
+- `Jenkinsfile` — removed Build App Image stage; Docker image builds and Azure Container Apps
+  deploys are now orchestrated by the root `aharbii/movie-finder` pipeline
