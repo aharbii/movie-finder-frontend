@@ -103,9 +103,9 @@ logs:
 
 shell:
 	@if $(COMPOSE) ps --services --status running 2>/dev/null | grep -qx "$(SERVICE)"; then \
-		$(COMPOSE) exec $(SERVICE) sh; \
+		$(COMPOSE) exec $(SERVICE) bash; \
 	else \
-		$(COMPOSE) run --rm $(SERVICE) sh; \
+		$(COMPOSE) run --rm $(SERVICE) bash; \
 	fi
 
 lint:
