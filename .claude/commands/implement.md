@@ -2,7 +2,7 @@
 
 **Repo:** `aharbii/movie-finder-frontend`
 **Parent tracker:** `aharbii/movie-finder`
-**Pre-commit:** `npm run lint && npm test` (run `npm ci` first if node_modules is missing)
+**Pre-commit:** `make pre-commit` (runs inside Docker — no host Node required)
 
 Implement GitHub issue #$ARGUMENTS from `aharbii/movie-finder-frontend`.
 
@@ -63,10 +63,11 @@ General TypeScript standards:
 ## Step 6 — Run quality checks
 
 ```bash
-npm run lint && npm test
+make pre-commit
 ```
 
-If `node_modules` is missing: `npm ci` first.
+Runs all hooks inside Docker — no host Node required. For a full quality gate use `make check`
+(typecheck + lint + format:check + test-coverage).
 
 ---
 
