@@ -8,14 +8,19 @@ import {
   Message,
   Phase,
   SessionHistory,
-  SessionSummary,
+  SessionPage,
   SseDoneEvent,
   SseEvent,
 } from '../models';
 import { AuthService } from './auth.service';
 
 function uuid(): string {
-  return crypto.randomUUID();
+  // crypto.randomUUID() requires a secure context; getRandomValues() works everywhere.
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x40; // version 4
+  bytes[8] = (bytes[8] & 0x3f) | 0x80; // variant
+  const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 }
 
 /**
@@ -64,16 +69,14 @@ export class ChatService {
 
   /** Called once after login or on page reload to populate the sidebar. */
   async restoreSessions(): Promise<void> {
-    let summaries: SessionSummary[];
+    let page: SessionPage;
     try {
-      summaries = await firstValueFrom(
-        this.http.get<SessionSummary[]>(`${this.base}/chat/sessions`),
-      );
+      page = await firstValueFrom(this.http.get<SessionPage>(`${this.base}/chat/sessions`));
     } catch {
       return; // endpoint not ready or network error — leave state empty
     }
 
-    const restored: ChatSession[] = summaries.map((s) => {
+    const restored: ChatSession[] = page.items.map((s) => {
       const movie = s.confirmed_movie ? this.normalizeMovie(s.confirmed_movie) : undefined;
       return {
         session_id: s.session_id,

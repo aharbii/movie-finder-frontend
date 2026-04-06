@@ -22,6 +22,7 @@
 FROM node:22-alpine AS dev
 
 RUN apk add --no-cache \
+    bash \
     git \
     make \
     python3 \

@@ -1,15 +1,17 @@
 # =============================================================================
 # movie-finder-frontend — Docker-only development service
 #
-# This compose file provides the `dev` container used by the Makefile for all
-# quality commands (lint, format, typecheck, test). It is NOT used to serve
-# the compiled Angular app — that is handled by the root docker-compose.yml.
+# This compose file provides two services:
+#   dev    long-running container for quality commands (lint, format, typecheck, test)
+#   serve  Angular dev server
 #
 # Usage (via Makefile targets):
 #   make init        # npm ci — install node_modules into the mounted workspace
 #   make editor-up   # start long-running container for fast exec-based checks
 #   make lint        # npm run lint (exec if running, run --rm otherwise)
 #   make check       # typecheck + lint + format:check + test
+#   make serve       # start Angular dev server (http://<host-ip>:4200)
+#   make serve-down  # stop the dev server
 # =============================================================================
 
 services:
@@ -30,6 +32,24 @@ services:
     environment:
       GIT_DIR: /workspace/.gitdir
       GIT_WORK_TREE: /workspace
+    volumes:
+      - .:/workspace
+      - ${CLIENT_GIT_DIR:-.git}:/workspace/.gitdir
+
+  # ---------------------------------------------------------------------------
+  # serve — Angular dev server
+  #
+  # The backend API is proxied via proxy.conf.js (Angular's proxyConfig).
+  # ---------------------------------------------------------------------------
+  serve:
+    build:
+      context: .
+      target: dev
+    container_name: movie-finder-frontend-serve
+    working_dir: /workspace
+    command: ["npx", "ng", "serve", "--host", "0.0.0.0", "--port", "4200"]
+    ports:
+      - "4200:4200"
     volumes:
       - .:/workspace
       - ${CLIENT_GIT_DIR:-.git}:/workspace/.gitdir
