@@ -11,7 +11,8 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "ms-vscode.makefile-tools",
-        "ryanluker.vscode-coverage-gutters"
+        "ryanluker.vscode-coverage-gutters",
+        "vitest.explorer"
       ],
       "settings": {
         "[html]": {
@@ -25,17 +26,13 @@
           "editor.defaultFormatter": "esbenp.prettier-vscode",
           "editor.formatOnSave": true
         },
-        "editor.rulers": [
-          120
-        ],
+        "editor.rulers": [120],
         "typescript.preferences.importModuleSpecifier": "relative"
       }
     }
   },
   "dockerComposeFile": "../docker-compose.yml",
-  "forwardPorts": [
-    4200
-  ],
+  "forwardPorts": [4200],
   "name": "movie-finder-frontend",
   "overrideCommand": false,
   "portsAttributes": {
@@ -46,7 +43,7 @@
   },
   "postCreateCommand": "echo 'Frontend devcontainer ready. Run: make editor-up'",
   "remoteUser": "node",
-  "service": "frontend-dev",
+  "service": "dev",
   "shutdownAction": "stopCompose",
   "workspaceFolder": "/workspace"
 }
