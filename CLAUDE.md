@@ -3,6 +3,8 @@
 This is **`movie-finder-frontend`** (`frontend/`) — part of the Movie Finder project.
 GitHub repo: `aharbii/movie-finder-frontend` · Parent repo: `aharbii/movie-finder`
 
+> See root `CLAUDE.md` for: full submodule map, GitHub issue/PR hygiene, cross-cutting checklist, coding standards, branching strategy, session start protocol.
+
 ---
 
 ## What this submodule does
@@ -31,23 +33,7 @@ Jenkinsfile            CI/CD pipeline
 
 ---
 
-## Full project context
-
-### Submodule map
-
-| Path                     | GitHub repo                           | Role                           |
-| ------------------------ | ------------------------------------- | ------------------------------ |
-| `.` (root)               | `aharbii/movie-finder`                | Parent — all cross-repo issues |
-| `backend/`               | `aharbii/movie-finder-backend`        | FastAPI + uv workspace root    |
-| `backend/app/`           | (nested in backend)                   | FastAPI application layer      |
-| `backend/chain/`         | `aharbii/movie-finder-chain`          | LangGraph AI pipeline          |
-| `backend/chain/imdbapi/` | `aharbii/imdbapi-client`              | Async IMDb REST client         |
-| `backend/rag_ingestion/` | `aharbii/movie-finder-rag`            | Offline embedding ingestion    |
-| `frontend/`              | `aharbii/movie-finder-frontend`       | **← you are here**             |
-| `docs/`                  | `aharbii/movie-finder-docs`           | MkDocs documentation           |
-| `infrastructure/`        | `aharbii/movie-finder-infrastructure` | IaC / Azure provisioning       |
-
-### Technology stack
+## Technology stack (frontend-specific)
 
 | Layer           | Stack                                                                 |
 | --------------- | --------------------------------------------------------------------- |
@@ -65,7 +51,7 @@ Jenkinsfile            CI/CD pipeline
 
 ---
 
-## Design patterns to follow
+## Design patterns (frontend-specific)
 
 | Pattern                      | Where                  | Rule                                                                                                                                                             |
 | ---------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -77,87 +63,46 @@ Jenkinsfile            CI/CD pipeline
 
 ---
 
-## Coding standards
+## Coding standards (additions to root CLAUDE.md)
 
-- **TypeScript strict mode** — `noImplicitAny`, `strictNullChecks` enabled in `tsconfig.json`
-- **No `any`** — use `unknown` + type narrowing, or define a proper interface
-- **Standalone components only** — no NgModules
-- **Signals for state** — `BehaviorSubject` is acceptable for cross-component streams, but not for local component state
-- **No `console.log`** left in production code
-- **ESLint 9 + Prettier** must pass before commit — run `npm run lint` and `npm run format`
-- **Tests with Vitest** — every component and service needs at least a basic test
+- **Standalone components only** — no NgModules ever
+- **Signals for state** — `BehaviorSubject` is acceptable for cross-component streams, but not for component-local state
+- **API response types must be defined** — no raw `any` from HTTP calls
 - `readonly` wherever possible — signal inputs, injected services, model interfaces
-- API response types must be defined — no raw `any` from HTTP calls
+- Run `npm run lint` and `npm run format` before committing
+
+---
+
+## Pre-commit hooks
+
+`frontend/.pre-commit-config.yaml` uses local node hooks — `node_modules` must exist first.
+
+```bash
+npm ci && pre-commit install
+pre-commit run --all-files
+```
+
+Hooks: whitespace/file health, `detect-secrets` (excludes `package-lock.json`), `eslint` (`--max-warnings=0`), `prettier --check`. **Never `--no-verify`.**
 
 ---
 
 ## VSCode setup
-
-`frontend/.vscode/` is committed with a full workspace configuration:
 
 - `settings.json` — Prettier format-on-save, ESLint 9, Vitest, TypeScript strict
 - `extensions.json` — `angular.ng-template`, `esbenp.prettier-vscode`, `dbaeumer.vscode-eslint`, GitLens, Docker
 - `launch.json` — Chrome debugger for `ng serve` (localhost:4200) and `ng test`
 - `tasks.json` — `npm: start` and `npm: test` background tasks
 
-**Format on save:** Prettier handles `.ts`, `.html`, `.scss`
-**Linting:** ESLint 9 flat config (`eslint.config.js`) — `npm run lint`
+**Format on save:** Prettier handles `.ts`, `.html`, `.scss`. **Linting:** `npm run lint`.
 
 ---
 
-## Pre-commit hooks
+## Workflow invariants (frontend-specific)
 
-`frontend/.pre-commit-config.yaml` uses **local node hooks** — no Python toolchain needed.
+- Gitlink path is `frontend` inside `aharbii/movie-finder`. Parent path filters must use `frontend`, not `frontend/**`.
+- SSE event field renames originating in `chain/` are breaking changes for this repo — coordinate before merging.
 
-```bash
-# Prerequisite: node_modules must exist
-npm ci
-
-# Install hooks
-pre-commit install
-
-# Run manually
-pre-commit run --all-files
-```
-
-| Hook                                                                             | What it checks                                            |
-| -------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-merge-conflict` | File health                                               |
-| `detect-private-key`, `detect-secrets`                                           | Secrets (excludes `package-lock.json`)                    |
-| `eslint-frontend`                                                                | TS + HTML via `node_modules/.bin/eslint --max-warnings=0` |
-| `prettier-frontend`                                                              | Format check via `node_modules/.bin/prettier --check`     |
-
-**Never `--no-verify`.** False-positive secret → `# pragma: allowlist secret` + update `.secrets.baseline`.
-
----
-
-## Workflow invariants
-
-- This repo is the gitlink path `frontend` inside `aharbii/movie-finder`. Parent
-  workflow/path filters must use `frontend`, not `frontend/**`.
-- Cross-repo tracker issues originate in `aharbii/movie-finder`. Create the linked child issue in
-  this repo only if this repo will actually change.
-- Inspect `.github/ISSUE_TEMPLATE/*.yml`, `.github/PULL_REQUEST_TEMPLATE.md` when present, and a
-  recent example before creating or editing issues/PRs. Do not improvise titles or bodies.
-- For child issues in this repo, use `.github/ISSUE_TEMPLATE/linked_task.yml` and keep the
-  description, file references, and acceptance criteria repo-specific.
-- If CI, required checks, or merge policy changes affect this repo, update contributor-facing docs
-  here and in `aharbii/movie-finder` where relevant.
-- If a new standalone issue appears mid-session, branch from `main` unless stacking is explicitly
-  requested.
-- PR descriptions must disclose the AI authoring tool + model. Any AI-assisted review comment or
-  approval must also disclose the review tool + model.
-
----
-
-## Session start protocol
-
-1. `gh issue list --repo aharbii/movie-finder --state open`
-2. Inspect `.github/ISSUE_TEMPLATE/*.yml`, `.github/PULL_REQUEST_TEMPLATE.md` when present, and a
-   recent example of the same type
-3. Create the parent issue in `aharbii/movie-finder`, then the linked child issue in
-   `aharbii/movie-finder-frontend` only if this repo will actually change
-4. Create a branch from `main` and work through the checklist
+Run `/session-start` in root workspace.
 
 ---
 
@@ -171,23 +116,17 @@ Conventional Commits: `feat(ui): add SSE reconnect with exponential backoff`
 
 ---
 
-## Cross-cutting change checklist
-
-Full detail in `ai-context/issue-agent-briefing-template.md`.
+## Cross-cutting change checklist (frontend-specific rows)
 
 | #   | Category           | Key gate                                                                                                                                                                                      |
 | --- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Issues**         | Parent `aharbii/movie-finder` + child here only if this repo changes; templates inspected                                                                                                     |
-| 2   | **Branch**         | `feature/fix/chore/docs` in this repo + pointer-bump `chore/` in root `movie-finder`                                                                                                          |
-| 3   | **ADR**            | New framework, state management strategy change, or breaking SSE protocol change → ADR in `docs/`                                                                                             |
-| 4   | **Implementation** | Smart/Dumb boundary respected; no direct `HttpClient`/`EventSource` in components; TypeScript strict; `npm run lint` + `npm run format` pass; `npm test` passes; proxy still routes correctly |
-| 5   | **Env & secrets**  | `nginx.conf.template` + `docker-entrypoint.sh` updated for new routes/env; `.env.example` updated; new secrets → Key Vault + Jenkins                                                          |
-| 6   | **Docker**         | `Dockerfile` + `docker-compose.yml` updated for new build args/env/ports                                                                                                                      |
-| 7   | **CI**             | `Jenkinsfile` / `.github/workflows/` reviewed                                                                                                                                                 |
-| 8   | **Diagrams**       | `06-frontend-architecture.puml`; `07-seq-authentication.puml` or `08-seq-chat-sse.puml` for flow changes; `workspace.dsl` if C4 changed; commit to `docs/` first; **never `.mdj`**            |
-| 8a  | **Docs**           | `docs/` pages (UI guide, SSE integration); `README.md` + `CHANGELOG.md` updated                                                                                                               |
+| 1   | **Branch**         | `feature/fix/chore/docs` in this repo + pointer-bump `chore/` in root `movie-finder`                                                                                                          |
+| 2   | **ADR**            | New framework, state management strategy change, or breaking SSE protocol change → ADR in `docs/`                                                                                             |
+| 3   | **Env & secrets**  | `nginx.conf.template` + `docker-entrypoint.sh` updated for new routes/env; `.env.example` updated; new secrets → Key Vault + Jenkins                                                          |
+| 4   | **Docker**         | `Dockerfile` + `docker-compose.yml` updated for new build args/env/ports                                                                                                                      |
+| 5   | **Diagrams**       | `06-frontend-architecture.puml`; `07-seq-authentication.puml` or `08-seq-chat-sse.puml` for flow changes; `workspace.dsl` if C4 changed; commit to `docs/` first; **never `.mdj`**            |
 
-### 10. Sibling submodules affected
+### Sibling submodules affected
 
 | Submodule         | Why                                                                       |
 | ----------------- | ------------------------------------------------------------------------- |
@@ -196,14 +135,14 @@ Full detail in `ai-context/issue-agent-briefing-template.md`.
 | `infrastructure/` | New Azure Container App config, env vars                                  |
 | `docs/`           | UI screenshots, user guide, architecture                                  |
 
-### 11. Submodule pointer bump
+### Submodule pointer bump
 
 ```bash
 # in root movie-finder
 git add frontend && git commit -m "chore(frontend): bump to latest main"
 ```
 
-### 12. Pull request
+### Pull request
 
 - [ ] PR in `aharbii/movie-finder-frontend` discloses the AI authoring tool + model
 - [ ] PR in `aharbii/movie-finder` (pointer bump)

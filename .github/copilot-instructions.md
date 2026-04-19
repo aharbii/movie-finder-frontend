@@ -1,102 +1,38 @@
 # GitHub Copilot — movie-finder-frontend
 
-Angular 21 SPA for Movie Finder. Users describe a half-remembered film in natural language;
-results and Q&A answers stream back via SSE (`EventSource`). Served by nginx in production.
+Angular 21 SPA — natural-language film search with SSE streaming results and chat Q&A, served by nginx.
 
-Parent project: `aharbii/movie-finder` — all issues created there first, then linked here.
-
----
-
-## Tech stack
-
-| Layer       | Stack                                                                 |
-| ----------- | --------------------------------------------------------------------- |
-| Framework   | Angular 21, TypeScript 5.9                                            |
-| State       | Angular Signals (no BehaviorSubject for component state)              |
-| HTTP        | `HttpClient` via facade services — components never call it directly  |
-| Streaming   | `EventSource` (SSE) for chat responses                                |
-| Tests       | Vitest + Angular TestBed, `@vitest/coverage-v8`                       |
-| Lint/Format | ESLint 9 flat config (`eslint.config.js`), Prettier 3 (`.prettierrc`) |
-| Build       | Angular CLI, `ng build` → nginx static serving                        |
+> For full project context, persona prompts, and architecture reference: see root `.github/copilot-instructions.md`.
 
 ---
 
 ## TypeScript standards
 
-- **Strict mode**: `noImplicitAny`, `strictNullChecks` — no `any`, use `unknown` + narrowing
+- **Strict mode**: `noImplicitAny`, `strictNullChecks` — no `any`, use `unknown` + type narrowing
 - **Standalone components only** — no NgModules ever
-- **Signals** for all reactive state — no `BehaviorSubject` for component-local state
-- **Immutability** — prefer `readonly` and `const` everywhere applicable
-- No `console.log` left in production code — use proper logging service
+- **Signals for all reactive state** — `BehaviorSubject` is acceptable for cross-component streams, but never for component-local state
+- `readonly` wherever possible — signal inputs, injected services, model interfaces
+- No `console.log` left in production code — use a proper logging service
+- Run `npm run typecheck && npm run lint && npm run format:check` before committing
 
 ---
 
-## Design patterns — follow these
+## Design patterns
 
-| Pattern                     | Rule                                                                                                          |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Smart / Dumb components** | Smart components own services and state. Dumb components take `@Input()` only.                                |
-| **Facade service**          | Services wrap `HttpClient` and return typed signals/observables. Components never call `HttpClient` directly. |
-| **Signal-based state**      | Use Angular Signals for all reactive state. Avoid `BehaviorSubject`.                                          |
-
----
-
-## Pre-commit hooks
-
-```bash
-npm ci                        # prerequisite
-pre-commit install
-pre-commit run --all-files
-```
-
-Hooks: `trailing-whitespace`, `end-of-file-fixer`, `check-yaml`, `check-merge-conflict`,
-`detect-private-key`, `detect-secrets` (excludes `package-lock.json`),
-`eslint-frontend` (via local `node_modules/.bin/eslint`),
-`prettier-frontend` (via local `node_modules/.bin/prettier`).
+| Pattern                     | Rule                                                                                                                                                   |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Smart / Dumb components** | Smart components own services and state. Dumb (presentational) components receive `@Input()` only and emit `@Output()`. No service injection in dumb components. |
+| **Facade service**          | Services wrap `HttpClient` and `EventSource`, returning typed signals or observables. Components never call `HttpClient` or `EventSource` directly.    |
+| **Runtime config injection** | Environment-specific config (API URL) is injected at container start via `docker-entrypoint.sh` — not baked into the Angular build.                  |
 
 ---
 
-## npm scripts
+## Key files
 
-```bash
-npm run typecheck       # tsc --noEmit
-npm run lint            # ESLint
-npm run lint:fix        # ESLint --fix
-npm run format          # Prettier --write
-npm run format:check    # Prettier --check
-npm run test:ci         # Vitest single run → coverage/ (JUnit + Cobertura XML)
-```
-
-All four checks must pass before opening a PR.
-
----
-
-## Workflow invariants
-
-- This repo is the gitlink path `frontend` inside `aharbii/movie-finder`. Parent
-  workflow/path filters must use `frontend`, not `frontend/**`.
-- Cross-repo tracker issues originate in `aharbii/movie-finder`. Create the linked child issue in
-  this repo only if this repo will actually change.
-- Inspect `.github/ISSUE_TEMPLATE/*.yml`, `.github/PULL_REQUEST_TEMPLATE.md` when present, and a
-  recent example before creating or editing issues/PRs. Do not improvise titles or bodies.
-- For child issues in this repo, use `.github/ISSUE_TEMPLATE/linked_task.yml` and keep the
-  description, file references, and acceptance criteria repo-specific.
-- If CI, required checks, or merge policy changes affect this repo, update contributor-facing docs
-  here and in `aharbii/movie-finder` where relevant.
-- If a new standalone issue appears mid-session, branch from `main` unless stacking is explicitly
-  requested.
-- PR descriptions must disclose the AI authoring tool + model. Any AI-assisted review comment or
-  approval must also disclose the review tool + model.
-
----
-
-## Cross-cutting — check for every change
-
-1. GitHub issue in `aharbii/movie-finder` + linked child issue here only if this repo changes, using the current templates and recent examples
-2. Branch: `feature/`, `fix/`, `chore/` (kebab-case) from `main` unless stacking is explicitly requested
-3. ADR if Angular version, SSE contract, or auth flow changes
-4. `.env.example` updated in frontend + root if new env vars
-5. `Dockerfile` + nginx config updated for new routes or build changes
-6. `backend/app/` assessed — API contract or SSE event shape changes affect this repo
-7. PlantUML `06-frontend-architecture.puml`, `07-seq-authentication.puml`, `08-seq-chat-sse.puml` updated
-8. Coverage must not regress (`npm run test:ci`)
+| Path                    | Description                                                          |
+| ----------------------- | -------------------------------------------------------------------- |
+| `src/`                  | Angular application source — components, services, models            |
+| `eslint.config.js`      | ESLint 9 flat config                                                 |
+| `nginx.conf.template`   | Production nginx config (env-var substituted at container start)     |
+| `docker-entrypoint.sh`  | Injects runtime env into the built app — no build-time secrets       |
+| `proxy.conf.js`         | Dev server proxy to backend (localhost:8000)                         |

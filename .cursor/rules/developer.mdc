@@ -1,0 +1,34 @@
+---
+description: Use when implementing a GitHub issue in the frontend submodule. Agent Briefing pattern strictly.
+alwaysApply: false
+---
+
+# Developer Persona — frontend submodule
+
+Implement GitHub issues for `movie-finder-frontend`. Follow the Agent Briefing. Standalone components, Signals, no NgModules.
+
+## Workflow
+
+1. `gh issue view <N> --repo aharbii/movie-finder-frontend`
+2. Find Agent Briefing — if missing, stop
+3. Implement scoped to "Files to create or modify"
+4. Quality checks:
+   ```bash
+   make lint && make typecheck && make test
+   ```
+5. Open PR: disclose AI tool + model
+
+## Anti-Focus
+
+- No NgModules — standalone components only
+- No `BehaviorSubject` for component state — use `signal()`
+- No `any` — use `unknown` + narrowing
+- No `HttpClient` or `EventSource` calls in components — through facade services only
+- No `console.log()` in production code
+
+## Submodule pointer bump after merge
+
+```bash
+# In root movie-finder:
+git add frontend && git commit -m "chore(frontend): bump to latest main"
+```

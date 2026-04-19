@@ -1,6 +1,9 @@
 # Gemini CLI — frontend submodule
 
-Foundational mandate for `movie-finder-frontend` (`frontend/`).
+This is **`movie-finder-frontend`** (`frontend/`) — part of the Movie Finder project.
+GitHub repo: `aharbii/movie-finder-frontend` · Parent repo: `aharbii/movie-finder`
+
+> See root GEMINI.md for: full submodule map, GitHub issue/PR hygiene, coding standards, branching strategy, session start protocol.
 
 ---
 
@@ -31,45 +34,18 @@ Angular 21 SPA — user interface for Movie Finder.
 
 ---
 
-## Coding standards
-
-- TypeScript **strict mode** on.
-- No `any` — use `unknown` or proper interfaces.
-- **Standalone components** only.
-- No `console.log` in production.
-- Vitest tests for every component/service.
-
----
-
 ## Common tasks
 
-- `npm ci`
-- `npm start`
-- `npm test`
-- `npm run lint` / `npm run format`
+```bash
+npm ci
+npm start
+npm test
+npm run lint / npm run format
+```
 
 ---
 
-## Workflow invariants
-
-- This repo is the gitlink path `frontend` inside `aharbii/movie-finder`. Parent
-  workflow/path filters must use `frontend`, not `frontend/**`.
-- Cross-repo tracker issues originate in `aharbii/movie-finder`. Create the linked child issue in
-  this repo only if this repo will actually change.
-- Inspect `.github/ISSUE_TEMPLATE/*.yml`, `.github/PULL_REQUEST_TEMPLATE.md` when present, and a
-  recent example before creating or editing issues/PRs. Do not improvise titles or bodies.
-- For child issues in this repo, use `.github/ISSUE_TEMPLATE/linked_task.yml` and keep the
-  description, file references, and acceptance criteria repo-specific.
-- If CI, required checks, or merge policy changes affect this repo, update contributor-facing docs
-  here and in `aharbii/movie-finder` where relevant.
-- If a new standalone issue appears mid-session, branch from `main` unless stacking is explicitly
-  requested.
-- PR descriptions must disclose the AI authoring tool + model. Any AI-assisted review comment or
-  approval must also disclose the review tool + model.
-
----
-
-## VSCode setup
+## VS Code setup
 
 `frontend/.vscode/` — full workspace configuration for the Angular SPA.
 
@@ -77,5 +53,17 @@ Angular 21 SPA — user interface for Movie Finder.
 - `extensions.json`: `angular.ng-template`, `esbenp.prettier-vscode`, `dbaeumer.vscode-eslint`, `vitest.explorer`, GitLens, Docker
 - `launch.json`: Chrome debugger for `ng serve` (localhost:4200)
 - `tasks.json`: `npm: start` and `npm: test` background tasks
-- Modifying configs: keep parity with root `.vscode/` frontend tasks. Update `CLAUDE.md`,
-  `GEMINI.md`, `AGENTS.md`, and the repo's `.github/copilot-instructions.md` after.
+
+---
+
+## Workflow invariants (frontend-specific)
+
+- Gitlink path is `frontend` inside `aharbii/movie-finder`. Parent path filters must use `frontend`, not `frontend/**`.
+- SSE event field renames originating in `chain/` are breaking changes for this repo — coordinate before merging.
+
+### Submodule pointer bump
+
+```bash
+# in root movie-finder
+git add frontend && git commit -m "chore(frontend): bump to latest main"
+```

@@ -1,0 +1,40 @@
+---
+description: Angular and TypeScript coding standards — auto-loads on TypeScript, HTML, and SCSS files.
+globs: ["**/*.ts", "**/*.html", "**/*.scss", "**/*.spec.ts"]
+alwaysApply: false
+---
+
+# Angular Standards — frontend submodule
+
+## Toolchain
+
+- Angular 21, TypeScript 5.9, Vitest
+- ESLint 9 flat config + Prettier, line length 120
+- All checks via Make: `make lint`, `make typecheck`, `make test`
+
+## Hard rules
+
+- **Standalone components only** — no NgModules ever
+- **Signals for all reactive state** — no `BehaviorSubject` for component state
+- **Strict mode on** — `noImplicitAny`, `strictNullChecks` enforced
+- **No `any`** — use `unknown` + type narrowing
+- **No `console.log()`** in production code
+- `readonly` wherever applicable
+
+## Angular design patterns
+
+| Pattern                   | Rule                                                                          |
+|---------------------------|-------------------------------------------------------------------------------|
+| **Smart / Dumb**          | Smart = owns services + signals + state. Dumb = `@Input()` only, no injection.|
+| **Facade service**        | Components never call `HttpClient` or `EventSource` directly.                 |
+| **Signal state**          | `signal()`, `computed()`, `effect()` — not `BehaviorSubject`                  |
+| **SSE service**           | `EventSource` wrapped in a dedicated facade service — not instantiated inline  |
+| **Immutability**          | State objects replaced, not mutated. Signal values reassigned, not patched.   |
+
+## Pre-commit
+
+```bash
+make pre-commit
+```
+
+Never `--no-verify`.

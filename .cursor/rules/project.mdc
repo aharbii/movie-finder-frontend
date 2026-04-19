@@ -1,0 +1,67 @@
+---
+description: Movie Finder — frontend submodule context. Always active.
+alwaysApply: true
+---
+
+# frontend — Angular 21 SPA
+
+This is `movie-finder-frontend` (`frontend/`) — the user interface for Movie Finder.
+GitHub repo: `aharbii/movie-finder-frontend` · Tracker: `aharbii/movie-finder`
+
+## What this submodule does
+
+Angular 21 SPA: user types a natural-language film description → SSE stream shows candidates → user confirms → follow-up Q&A chat.
+
+- **SSE:** `EventSource` consumes the FastAPI `/stream` endpoint
+- **nginx:** serves the production build and reverse-proxies API calls
+- **Runtime env injection:** `docker-entrypoint.sh` injects config at container start — no build-time secrets
+
+## Key source layout
+
+```
+src/
+├── app/
+│   ├── features/
+│   │   ├── chat/          # Q&A chat interface
+│   │   └── search/        # Film search + SSE candidates
+│   ├── core/              # Auth, HTTP interceptors, guards
+│   └── shared/            # Shared UI components
+angular.json               # Build + test config
+nginx.conf.template        # Production nginx (env-var substituted at runtime)
+docker-entrypoint.sh       # Injects runtime env
+Dockerfile                 # Multi-stage: node builder → nginx runtime
+proxy.conf.js              # Dev server proxy → backend:8000
+```
+
+## Stack
+
+- Angular 21, TypeScript 5.9
+- Standalone components only (no NgModules)
+- Signals for all reactive state
+- SSE via `EventSource` (wrapped in facade service)
+- Tests: Vitest
+- Linting: ESLint 9 flat config + Prettier
+
+## Quality checks (all run through Make — never raw npm)
+
+```bash
+make lint
+make typecheck
+make test
+make test-coverage
+make pre-commit
+make check    # typecheck + lint + test-coverage in one shot
+```
+
+## Non-negotiables
+
+- Standalone components only — no NgModules ever
+- Signals for state — no `BehaviorSubject` for component state
+- No `any` — use `unknown` + narrowing
+- Components never call `HttpClient` or `EventSource` directly — always through a facade service
+- No `console.log()` in production code
+- Never `git add -A`, never `--no-verify`, Conventional Commits
+
+## Personas available
+
+`/architect`, `/implement`, `/review-pr`, `/debug`, `/mentor`, `/pm`, `/sdet` — type `/` to see all.
