@@ -1,0 +1,17 @@
+{
+  "mcpServers": {
+    "github": {
+      "args": [
+        "-c",
+        ". ~/.zshenv && GITHUB_PERSONAL_ACCESS_TOKEN=$(gh auth token) npx -y @modelcontextprotocol/server-github"
+      ],
+      "command": "/bin/sh",
+      "type": "stdio"
+    },
+    "jenkins-local": {
+      "args": ["-c", ". ~/.zshenv && exec npx -y @kud/mcp-jenkins@latest"],
+      "command": "/bin/sh",
+      "type": "stdio"
+    }
+  }
+}
